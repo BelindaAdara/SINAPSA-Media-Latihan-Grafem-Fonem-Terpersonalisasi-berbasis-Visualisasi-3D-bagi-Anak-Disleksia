@@ -31,4 +31,12 @@ describe('generated seed data', () => {
     const seedPath = path.join(__dirname, '..', 'db', 'seed.sql');
     expect(fs.readFileSync(seedPath, 'utf8')).toBe(generateSeedSql());
   });
+
+  test('activates all five implemented exercise types in the generated seed', () => {
+    const section = generateSeedSql().split('insert into exercise_types')[1].split('on conflict')[0];
+    for (const id of ['listen_choose', 'discriminate', 'match_pairs', 'trace', 'syllable_build']) {
+      expect(section).toMatch(new RegExp(`\\('${id}',[^\\n]*, true, \\d+\\)`));
+    }
+    expect(section).not.toMatch(/,\s*false,\s*\d+\)/);
+  });
 });

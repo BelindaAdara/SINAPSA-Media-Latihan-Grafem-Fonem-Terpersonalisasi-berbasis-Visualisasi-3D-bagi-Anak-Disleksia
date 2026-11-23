@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "SINAPSA",
+    "slug": "sinapsa-ppb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "description": "Media latihan grafem-fonem yang ramah anak.",
+    "userInterfaceStyle": "automatic",
+    "scheme": "sinapsa",
+    "ios": {
+      "bundleIdentifier": "id.sinapsa.mobile",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "id.sinapsa.mobile",
+      "softwareKeyboardLayoutMode": "resize"
+    }
+  }
+}

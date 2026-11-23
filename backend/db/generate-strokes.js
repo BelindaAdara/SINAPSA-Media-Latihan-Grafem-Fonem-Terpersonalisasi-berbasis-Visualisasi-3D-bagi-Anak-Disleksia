@@ -83,9 +83,9 @@ const letters = [
 const exerciseTypes = [
   ['listen_choose', 'Dengar & Pilih', 'Dengar bunyinya, pilih hurufnya', 'Dengarkan bunyi huruf dengan saksama. Lalu ketuk huruf yang cocok.', 'suara', true],
   ['discriminate', 'Bedakan Huruf Mirip', 'Mana huruf yang sama persis?', 'Perhatikan bentuk hurufnya. Pilih huruf yang sama persis dengan contoh.', 'cermin', true],
-  ['match_pairs', 'Pasangkan Huruf & Bunyi', 'Pasangkan huruf dengan bunyinya', 'Pilih satu huruf, lalu pilih bunyi yang cocok. Pasangkan semuanya bersama-sama.', 'pasangan', false],
-  ['trace', 'Telusuri Huruf 3D', 'Ikuti jalur huruf dengan jarimu', 'Ikuti jalur huruf pelan-pelan dengan jarimu. Setelah selesai, lihat bentuk hurufnya.', 'telusuri', false],
-  ['syllable_build', 'Susun Suku Kata', 'Susun huruf menjadi suku kata', 'Lihat gambar dan bunyikan suku katanya. Ketuk huruf berurutan untuk menyusunnya.', 'susun', false],
+  ['match_pairs', 'Pasangkan Huruf & Bunyi', 'Pasangkan huruf dengan bunyinya', 'Pilih satu huruf, lalu pilih bunyi yang cocok. Pasangkan semuanya bersama-sama.', 'pasangan', true],
+  ['trace', 'Telusuri Huruf 3D', 'Ikuti jalur huruf dengan jarimu', 'Ikuti jalur huruf pelan-pelan dengan jarimu. Setelah selesai, lihat bentuk hurufnya.', 'telusuri', true],
+  ['syllable_build', 'Susun Suku Kata', 'Susun huruf menjadi suku kata', 'Lihat gambar dan bunyikan suku katanya. Ketuk huruf berurutan untuk menyusunnya.', 'susun', true],
 ];
 
 const words = [
@@ -102,8 +102,61 @@ const vowelHints = {
   o: 'Bulatkan bibir, lalu bunyikan: o.', u: 'Bulatkan bibir kecil, lalu bunyikan: u.',
 };
 
+const consonantHints = {
+  b: 'Bibir tertutup, lalu dilepas: b.',
+  c: "Bunyikan seperti bunyi awal kata 'cicak': ca.",
+  d: 'Ujung lidah menyentuh gigi atas, lalu dilepas: d.',
+  f: 'Gigi atas menyentuh bibir bawah, lalu hembuskan: fa.',
+  g: 'Pangkal lidah menyentuh langit-langit, lalu lepaskan: ga.',
+  h: 'Hembuskan napas dengan lembut: ha.',
+  j: "Bunyikan seperti bunyi awal kata 'jeruk': ja.",
+  k: 'Pangkal lidah menyentuh langit-langit, lalu lepaskan: ka.',
+  l: 'Ujung lidah menyentuh langit-langit: la.',
+  m: 'Rapatkan bibir dan keluarkan bunyi: ma.',
+  n: 'Ujung lidah menyentuh bagian belakang gigi atas: na.',
+  p: 'Rapatkan bibir, lalu lepaskan: pa.',
+  q: 'Bunyikan ka; huruf q jarang dipakai dalam kata Indonesia.',
+  r: 'Getarkan ujung lidah dengan lembut: ra.',
+  s: 'Desiskan udara dengan lembut: sa.',
+  t: 'Ujung lidah menyentuh belakang gigi atas, lalu dilepas: ta.',
+  v: 'Gigi atas menyentuh bibir bawah, lalu bunyikan: va.',
+  w: 'Bulatkan bibir, lalu bunyikan: wa.',
+  x: 'Bunyikan dua bunyi berurutan: ks, seperti eks.',
+  y: "Bunyikan ya, seperti bunyi awal kata 'yoyo'.",
+  z: 'Desiskan udara dengan lembut: za.',
+};
+
+const writingStepText = {
+  a: ['Buat lengkungan bulat kecil sampai kembali ke titik awal.', 'Tambahkan garis pendek turun di sisi kanan.'],
+  b: ['Tarik garis lurus ke bawah dari atas.', 'Kembali ke tengah batang, buat lengkungan ke kanan seperti perut.', 'Tutup lengkungan sampai menyentuh batang.'],
+  c: ['Mulai dari bagian atas kanan.', 'Buat lengkungan ke kiri, turun, lalu naik kembali ke kanan.', 'Sisakan celah kecil di sisi kanan.'],
+  d: ['Buat lengkungan bulat seperti huruf c.', 'Dari atas, tarik garis lurus ke bawah di sisi kanan.', 'Pastikan perut ada di kiri batang.'],
+  e: ['Tarik garis mendatar pendek di tengah.', 'Lanjutkan lengkungan ke kiri dan bawah.', 'Naikkan lengkungan kembali ke kanan atas.'],
+  f: ['Tarik garis panjang dari bawah ke atas.', 'Tambahkan garis pendek melintang di bagian tengah.'],
+  g: ['Buat lengkungan bulat kecil.', 'Lanjutkan batang turun melewati garis dasar.', 'Akhiri dengan lengkungan ke kiri.'],
+  h: ['Tarik garis lurus turun di sisi kiri.', 'Mulai dari tengah batang, buat lengkungan ke kanan.', 'Tarik ujung lengkungan lurus ke bawah.'],
+  i: ['Tarik garis pendek lurus ke bawah.', 'Beri titik kecil di atasnya.'],
+  j: ['Beri titik kecil di bagian atas.', 'Tarik garis lurus ke bawah melewati garis dasar.', 'Lengkungkan ujungnya ke kiri.'],
+  k: ['Tarik garis lurus dari atas ke bawah.', 'Dari tengah, buat garis miring ke kanan atas.', 'Buat garis miring ke kanan bawah.'],
+  l: ['Tarik satu garis lurus dari atas sampai bawah.'],
+  m: ['Tarik garis pendek ke atas dan turun.', 'Buat lengkungan pertama ke bawah.', 'Lanjutkan lengkungan kedua ke bawah.'],
+  n: ['Tarik garis pendek ke atas dan turun.', 'Dari tengah, buat satu lengkungan ke kanan sampai ke garis dasar.'],
+  o: ['Buat satu lingkaran lonjong tanpa mengangkat pensil.', 'Tutup lingkaran pada titik awal.'],
+  p: ['Tarik batang dari atas ke bawah melewati garis dasar.', 'Dari tengah batang, buat lengkungan ke kanan.', 'Tutup lengkungan seperti perut kecil.'],
+  q: ['Buat lengkungan bulat seperti huruf o.', 'Tarik batang dari tengah ke bawah.', 'Arahkan batang ke sisi kiri.'],
+  r: ['Tarik garis pendek ke atas dan kembali ke bawah.', 'Buat lengkungan kecil ke kanan dari bagian tengah.'],
+  s: ['Buat lengkungan kecil ke kanan di bagian atas.', 'Arahkan garis ke kiri lalu melengkung ke kanan bawah.', 'Akhiri dengan lengkungan kecil ke kiri.'],
+  t: ['Tarik batang pendek dari atas ke bawah.', 'Tambahkan garis melintang di bagian tengah.'],
+  u: ['Tarik garis turun di sisi kiri.', 'Buat lengkungan di bawah ke arah kanan.', 'Tarik garis naik di sisi kanan.'],
+  v: ['Tarik garis miring turun ke tengah.', 'Tarik garis miring naik ke kanan.'],
+  w: ['Tarik garis miring turun dan naik membentuk lembah pertama.', 'Lanjutkan garis miring turun dan naik membentuk lembah kedua.'],
+  x: ['Tarik garis miring dari kiri atas ke kanan bawah.', 'Silangkan dengan garis miring dari kanan atas ke kiri bawah.'],
+  y: ['Tarik garis miring turun ke tengah.', 'Lanjutkan garis miring ke kanan atas.', 'Tarik batang dari tengah turun ke kiri.'],
+  z: ['Tarik garis mendatar di bagian atas.', 'Buat garis miring turun ke kiri bawah.', 'Tarik garis mendatar di bagian bawah.'],
+};
+
 function hint(symbol, phoneme, category) {
-  return vowelHints[symbol] || `Ucapkan bunyi ${phoneme.replaceAll('/', '')} dengan lembut.`;
+  return vowelHints[symbol] || consonantHints[symbol] || `Ucapkan bunyi ${phoneme.replaceAll('/', '')} dengan lembut.`;
 }
 
 function tips(symbol, lookalike, difficulty) {
@@ -117,9 +170,7 @@ function tips(symbol, lookalike, difficulty) {
 }
 
 function writingSteps(symbol) {
-  if (symbol === 'b') return ['Tarik garis lurus ke bawah dari atas.', 'Kembali ke tengah batang, buat lengkungan ke kanan seperti perut.', 'Tutup lengkungan sampai menyentuh batang.'];
-  if (symbol === 'd') return ['Buat lengkungan bulat seperti huruf c.', 'Dari atas, tarik garis lurus ke bawah di sisi kanan.', 'Pastikan perut ada di kiri batang.'];
-  return [`Mulai tulis huruf ${symbol} dari bagian atas.`, 'Ikuti bentuknya dengan gerakan yang pelan.', 'Akhiri goresan dengan rapi.'];
+  return writingStepText[symbol];
 }
 
 function quote(value) {

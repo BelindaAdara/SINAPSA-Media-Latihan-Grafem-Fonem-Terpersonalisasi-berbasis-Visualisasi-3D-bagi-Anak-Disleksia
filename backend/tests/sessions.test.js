@@ -2,6 +2,7 @@ const request = require('supertest');
 const { createApp } = require('../src/app');
 
 const childId = 'c2cbba68-39a4-4a0f-95fa-cad38d9f9e35';
+const sessionId = 'c2cbba68-39a4-4a0f-95fa-cad38d9f9e36';
 const sessionPayload = {
   child_id: childId,
   name: 'Latihan pagi',
@@ -43,6 +44,7 @@ describe('POST /api/v1/sessions', () => {
       score: 50,
       duration_seconds: 390,
     });
+
     expect(items).toHaveLength(2);
     expect(response.body.data.session).toMatchObject({ id: 'session-id', score: 50, duration_seconds: 390 });
     expect(response.body.data.mastery_updates).toEqual([
@@ -95,5 +97,61 @@ describe('POST /api/v1/sessions', () => {
     });
     expect(JSON.stringify(response.body)).not.toContain('private database detail');
     await request(createApp({ repository: makeRepository() })).get('/api/v1/missing').expect(404);
+  });
+});
+
+describe('PUT and DELETE /api/v1/sessions/:id', () => {
+  test('updates the editable session fields', async () => {
+    const repository = makeRepository({
+      updateSession: jest.fn(async (id, changes) => ({ id, ...changes })),
+    });
+    const response = await request(createApp({ repository }))
+      .put(`/api/v1/sessions/${sessionId}`)
+      .send({ name: 'Latihan baru', note: 'Berlatih bersama', mood: 'happy' })
+      .expect(200);
+
+    expect(repository.updateSession).toHaveBeenCalledWith(sessionId, {
+      name: 'Latihan baru',
+      note: 'Berlatih bersama',
+      mood: 'happy',
+    });
+    expect(response.body.data).toMatchObject({ id: sessionId, name: 'Latihan baru' });
+  });
+
+  test('deletes a session and rebuilds mastery from remaining items', async () => {
+    const removedItems = [
+      { session_id: sessionId, letter: 'b', item_index: 0 },
+      { session_id: sessionId, letter: 'd', item_index: 1 },
+    ];
+    const remainingD = [{
+      letter: 'd',
+      item_index: 0,
+      is_correct: true,
+      resolved: true,
+      started_at: '2026-11-22T01:00:00.000Z',
+      ended_at: '2026-11-22T01:01:00.000Z',
+    }];
+    const repository = makeRepository({
+      getSession: jest.fn(async () => ({ id: sessionId, child_id: childId })),
+      getItemsForSession: jest.fn(async () => removedItems),
+      deleteSession: jest.fn(async () => undefined),
+      getItemsForLetter: jest.fn(async (_id, letter) => letter === 'd' ? remainingD : []),
+      deleteMastery: jest.fn(async () => undefined),
+      upsertMastery: jest.fn(async () => undefined),
+    });
+
+    const response = await request(createApp({ repository }))
+      .delete(`/api/v1/sessions/${sessionId}`)
+      .expect(200);
+
+    expect(response.body.data).toEqual({ deleted: true });
+    expect(repository.deleteMastery).toHaveBeenCalledWith(childId, 'b');
+    expect(repository.upsertMastery).toHaveBeenCalledWith(childId, 'd', {
+      score: 10,
+      attempts: 1,
+      correct: 1,
+      wrong: 0,
+      last_seen_at: '2026-11-22T01:01:00.000Z',
+    });
   });
 });
