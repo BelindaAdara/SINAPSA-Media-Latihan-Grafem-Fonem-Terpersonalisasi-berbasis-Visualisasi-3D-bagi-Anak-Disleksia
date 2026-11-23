@@ -83,17 +83,22 @@ export function BackButton({ navigation, title = 'Kembali' }) {
   );
 }
 
-export function Chip({ title, selected, onPress, style, accessibilityLabel }) {
+export function Chip({ title, selected, onPress, disabled = false, style, accessibilityLabel }) {
   const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected: Boolean(selected) }}
+      accessibilityState={{ selected: Boolean(selected), disabled }}
       accessibilityLabel={accessibilityLabel || title}
       onPress={onPress}
+      disabled={disabled}
       style={[
         styles.chip,
-        { backgroundColor: selected ? colors.secondary : colors.surface, borderColor: selected ? colors.accent : colors.border },
+        {
+          backgroundColor: selected ? colors.secondary : colors.surface,
+          borderColor: selected ? colors.accent : colors.border,
+          opacity: disabled ? 0.65 : 1,
+        },
         style,
       ]}
     >

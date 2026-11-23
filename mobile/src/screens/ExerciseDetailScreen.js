@@ -7,6 +7,7 @@ import { useChild } from '../context/ChildContext';
 import { useChildPreferences } from '../hooks/useChildPreferences';
 import { useTheme } from '../theme/ThemeContext';
 import { BackButton, Card, Chip, ErrorState, LoadingState, PrimaryButton, Screen, SectionTitle, ThemedText } from '../components/ui';
+import { randomTargets } from '../exercises/targetSelection';
 import { dateInTimezone } from '../utils/date';
 
 export function ExerciseDetailScreen({ route, navigation }) {
@@ -38,14 +39,14 @@ export function ExerciseDetailScreen({ route, navigation }) {
       setLetters(letterRows);
       setWords(wordRows);
       const eligible = eligibleLetters(exerciseType, letterRows, wordRows);
-      const recommendedTargets = (presetTargets?.length ? presetTargets : recs.map((entry) => entry.letter))
+      const validPresetTargets = (presetTargets || [])
+        .filter((symbol) => eligible.some((letter) => letter.symbol === symbol));
+      const recommendedTargets = (validPresetTargets.length ? validPresetTargets : recs.map((entry) => entry.letter))
         .filter((symbol) => eligible.some((letter) => letter.symbol === symbol));
       const safeTargets = recommendedTargets.length ? recommendedTargets.slice(0, 3) : eligible.slice(0, 3).map((letter) => letter.symbol);
       setRecommended(safeTargets);
-      if (!presetTargets?.length || !recommendedTargets.length) {
-        setSelected(safeTargets);
-        if (presetTargets?.length && !recommendedTargets.length) setSelectionMode('recommended');
-      }
+      setSelected(validPresetTargets.length ? validPresetTargets : safeTargets);
+      if (presetTargets?.length && !validPresetTargets.length) setSelectionMode('recommended');
     } catch (requestError) {
       setError(requestError);
     } finally {
@@ -56,6 +57,16 @@ export function ExerciseDetailScreen({ route, navigation }) {
 
   function toggleLetter(symbol) {
     setSelected((value) => value.includes(symbol) ? value.filter((item) => item !== symbol) : [...value, symbol]);
+  }
+
+  function chooseMode(mode) {
+    if (mode === 'custom' && selectionMode === 'recommended') setSelected(recommended);
+    setSelectionMode(mode);
+  }
+
+  function randomizeRecommended() {
+    const symbols = eligible.map((letter) => letter.symbol);
+    setRecommended((current) => randomTargets(symbols, current));
   }
 
   function start() {
@@ -81,25 +92,81 @@ export function ExerciseDetailScreen({ route, navigation }) {
       <ThemedText variant="title">{EXERCISE_LABELS[exercise.id] || exercise.name}</ThemedText>
       <Card><ThemedText variant="subtitle">Cara bermain</ThemedText><ThemedText>{exercise.how_to_play}</ThemedText></Card>
       <SectionTitle>Pilih huruf target</SectionTitle>
-      <View style={styles.row}>
-        <Chip title="Pilihan Sinapsa" selected={selectionMode === 'recommended'} onPress={() => setSelectionMode('recommended')} />
-        <Chip title="Pilih sendiri" selected={selectionMode === 'custom'} onPress={() => setSelectionMode('custom')} />
+      <View style={styles.modeRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: selectionMode === 'recommended' }}
+          onPress={() => chooseMode('recommended')}
+          style={({ pressed }) => [
+            styles.modeCard,
+            {
+              backgroundColor: selectionMode === 'recommended' ? colors.secondary : colors.surface,
+              borderColor: selectionMode === 'recommended' ? colors.accent : colors.border,
+              opacity: pressed ? 0.82 : 1,
+            },
+          ]}
+        >
+          <ThemedText variant="subtitle">✨ Pilihan Sinapsa</ThemedText>
+          <ThemedText variant="caption" style={{ color: colors.textSecondary }}>Saran adaptif untuk latihanmu</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: selectionMode === 'custom' }}
+          onPress={() => chooseMode('custom')}
+          style={({ pressed }) => [
+            styles.modeCard,
+            {
+              backgroundColor: selectionMode === 'custom' ? colors.secondary : colors.surface,
+              borderColor: selectionMode === 'custom' ? colors.accent : colors.border,
+              opacity: pressed ? 0.82 : 1,
+            },
+          ]}
+        >
+          <ThemedText variant="subtitle">🔤 Pilih sendiri</ThemedText>
+          <ThemedText variant="caption" style={{ color: colors.textSecondary }}>Tentukan huruf yang ingin dilatih</ThemedText>
+        </Pressable>
       </View>
+      {selectionMode === 'recommended' ? (
+        <Card style={styles.recommendationCard}>
+          <View style={styles.recommendationText}>
+            <ThemedText variant="subtitle">Racikan Sinapsa</ThemedText>
+            <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
+              Coba saran lain kapan saja.
+            </ThemedText>
+          </View>
+          <PrimaryButton
+            title="🎲 Acak lagi"
+            onPress={randomizeRecommended}
+            disabled={eligible.length <= 3}
+            secondary
+          />
+        </Card>
+      ) : (
+        <Card style={styles.selectionHint}>
+          <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
+            Ketuk satu atau beberapa huruf untuk memilih. Ketuk lagi untuk membatalkan pilihan.
+          </ThemedText>
+        </Card>
+      )}
       <View style={styles.letters}>
         {eligible.map((letter) => {
           const chosen = shownSelection.includes(letter.symbol);
           return (
-            <Pressable key={letter.symbol} onPress={() => selectionMode === 'custom' && toggleLetter(letter.symbol)} disabled={selectionMode !== 'custom'}>
-              <Chip title={letter.symbol} selected={chosen} accessibilityLabel={`Huruf ${letter.symbol}`} />
-            </Pressable>
+            <Chip
+              key={letter.symbol}
+              title={letter.symbol}
+              selected={chosen}
+              disabled={selectionMode !== 'custom'}
+              onPress={() => toggleLetter(letter.symbol)}
+              accessibilityLabel={`Huruf ${letter.symbol}`}
+              style={styles.letterChip}
+            />
           );
         })}
       </View>
-      {selectionMode === 'recommended' ? (
-        <Card><ThemedText variant="caption" style={{ color: colors.textSecondary }}>
-          Huruf dipilih dari latihan sebelumnya agar kamu bisa berlatih lagi dengan santai.
-        </ThemedText></Card>
-      ) : null}
+      <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
+        {shownSelection.length} huruf dipilih dari {eligible.length} yang tersedia.
+      </ThemedText>
       <Card>
         <ThemedText>Nama sesi</ThemedText>
         <TextInput value={name} onChangeText={setName} maxLength={60} accessibilityLabel="Nama sesi" placeholder="Nama latihan"
@@ -121,7 +188,12 @@ function eligibleLetters(exerciseType, letters, words) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  letters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  modeCard: { flexGrow: 1, flexBasis: 150, minHeight: 92, justifyContent: 'center', gap: 4, padding: 14, borderRadius: 20, borderWidth: 1 },
+  recommendationCard: { gap: 12 },
+  recommendationText: { gap: 2 },
+  selectionHint: { paddingVertical: 12 },
+  letters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  letterChip: { minWidth: 52, minHeight: 52, borderRadius: 18 },
   input: { borderWidth: 1, borderRadius: 14, minHeight: 50, paddingHorizontal: 12, fontSize: 18 },
 });
