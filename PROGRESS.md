@@ -1,16 +1,16 @@
 # SINAPSA — Progress Checklist
 
-Source of truth: [SRS_Sinapsa.md](./SRS_Sinapsa.md). Status reflects code review and commands run; `[~]` means implementation exists but still needs device or live-service validation.
+Source of truth: [SRS_Sinapsa.md](./SRS_Sinapsa.md). Live API results below are reported by the user; `[~]` means implementation exists but still needs device validation.
 
 ## Milestones
 
 - [x] Read the complete SRS, including Parts 0, 8, 11, 12, and all appendices.
 - [x] Backend schema, seed generator, API, tests, and lint.
-- [ ] Live Supabase `requests.http` flow — blocked: `backend/.env` is absent; no integration requests were run.
+- [x] Live Supabase `requests.http` flow — user reports all requested endpoint tests succeeded.
 - [x] Phase 2 — Expo setup, theme, navigation, API client, onboarding, and screen skeletons.
 - [x] Phase 3 — letter library, procedural 3D viewer, TTS, mirror control, and 2D fallback.
 - [x] Phases 4–7 — all five exercise mechanics, session summary, history, dashboard, progress, and profile.
-- [~] Final verification — backend/mobile unit tests, backend/mobile lint, and Android bundle export passed; EAS/device/live-Supabase tests pending.
+- [~] Final verification — backend/mobile unit tests, backend/mobile lint, Android bundle export, and live API tests passed; EAS/device tests pending.
 - [x] Local baseline and app milestone commits created; never push or include `.env`.
 
 ## Part 12 — Acceptance checklist
@@ -27,16 +27,16 @@ Source of truth: [SRS_Sinapsa.md](./SRS_Sinapsa.md). Status reflects code review
 
 ### Functional core
 
-- [~] Onboarding creates a child profile through the API and persists `child_id`; live API flow pending.
-- [~] `listen_choose` and `discriminate` implement attempts, hints, summary, mood, notes, and save; device/live flow pending.
+- [~] Onboarding creates a child profile through the API and persists `child_id`; live creation returned 201.
+- [~] `listen_choose` and `discriminate` implement attempts, hints, summary, mood, notes, and save; API save succeeded, device flow pending.
 - [x] Session duration is calculated and sent automatically.
-- [~] Home renders Monday–Sunday activity, trained-day sparkles, totals, latest session, target, and recommendations; live data/device pending.
+- [~] Home renders Monday–Sunday activity, trained-day sparkles, totals, latest session, target, and recommendations; live API passed, device rendering pending.
 - [~] Letter detail includes procedural 3D, rotation, mirror, TTS, examples, tips, and confusions; device/WebGL pending.
 - [x] d, p, q are exact geometric transforms of b; backend seed tests verify them.
-- [~] Progress renders accuracy, totals, calendar/heatmap, records, mastery map, and confusions; live API/device pending.
-- [~] History supports reading, editing, and deleting sessions; backend recalculation is implemented and covered by unit tests, but live flow pending.
+- [~] Progress renders accuracy, totals, calendar/heatmap, records, mastery map, and confusions; live API passed, device rendering pending.
+- [~] History supports reading, editing, and deleting sessions; live requests reported successful; visual/device flow pending.
 - [x] Recommendations adapt from mastery and confusion data; backend tests pass.
-- [~] All five mechanics are implemented and all five are active in the generated seed. Supabase must be reseeded to activate them in the live database.
+- [x] All five mechanics are implemented and all five are active in Supabase; user verified `GET /exercise-types`.
 
 ### UI/UX
 
@@ -50,10 +50,10 @@ Source of truth: [SRS_Sinapsa.md](./SRS_Sinapsa.md). Status reflects code review
 ### Technical
 
 - [x] No external photo, video, audio, font, or 3D-model assets are used; unused scaffold PNGs were removed.
-- [~] Backend service-role credential is not in mobile files or tracked files; `.env` is ignored. No live secret was accessed.
+- [~] Backend service-role credential is not in mobile files or tracked files; `.env` is ignored and was not inspected or committed.
 - [x] Backend tests pass: 17 tests.
 - [x] README covers setup, environment, seed, limitations, and EAS APK instructions.
-- [ ] Live Supabase endpoint flow (`GET /letters`, child/session create/update/delete, dashboard, progress, recommendations) not run; backend `.env` absent.
+- [x] Live Supabase endpoint flow tested with `requests.http`; see endpoint results in `DECISIONS.md`.
 - [x] Android JavaScript bundle exports successfully with Expo.
 - [~] Device-only behavior and manual checks remain outstanding.
 
@@ -63,4 +63,4 @@ Source of truth: [SRS_Sinapsa.md](./SRS_Sinapsa.md). Status reflects code review
 - Complete onboarding, then try each of the five exercise types, including repeated errors, hints, completion, summary, mood, notes, and save.
 - Rotate/mirror letters, test text-to-speech, trace every stroke in order, and confirm 2D fallback without WebGL.
 - Review both themes, all five tabs, history editing/deletion, progress calendar/heatmap, accessibility labels, and small-screen layout.
-- Re-run `backend/db/seed.sql` in Supabase before confirming that all five exercise types are active there.
+- Run EAS APK build and test app flows on a physical Android device.

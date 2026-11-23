@@ -40,7 +40,7 @@ Semua endpoint berada di `/api/v1`; contoh request ada di [backend/requests.http
 ## Keterbatasan dan status validasi
 
 - Belum ada autentikasi: `child_id` adalah pengenal profil lokal, bukan bukti identitas. Simpan hanya nama panggilan, usia, dan data latihan. Satu perangkat menggunakan satu profil anak.
-- Koneksi langsung ke Supabase dan alur endpoint pada `requests.http` belum diuji dalam sesi ini karena `backend/.env` tidak tersedia. Tidak ada request integrasi atau perubahan data Supabase yang dilakukan.
+- Pengguna telah menjalankan uji `backend/requests.http` terhadap Supabase: endpoint GET, PUT, dan DELETE yang dicoba mengembalikan 200; `POST /children` dan `POST /sessions` mengembalikan 201 Created (sesuai HTTP). `GET /letters` mengembalikan 26 huruf, kelima jenis latihan aktif, dan POST sesi mengembalikan `mastery_updates`. Hasil ini dilaporkan pengguna dan belum diverifikasi ulang otomatis.
 - Penggunaan suara, gerakan 3D/WebGL, fallback 2D, gestur tracing, tampilan pada ukuran layar berbeda, dan keterjangkauan backend dari perangkat masih perlu diperiksa di HP.
 - TTS bahasa Indonesia dapat membacakan nama huruf alih-alih fonem; bunyi disampaikan sebagai suku kata.
-- Unit test backend/mobile, lint backend/mobile, dan ekspor bundle Android berhasil dijalankan. Build EAS dan uji perangkat belum dijalankan.
+- Unit test backend/mobile, lint backend/mobile, ekspor bundle Android, dan uji API live yang dilaporkan pengguna berhasil. Build EAS dan uji perangkat belum dijalankan.
