@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+backend/.env
+mobile/.env
+.expo/
+*.log

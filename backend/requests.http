@@ -1,0 +1,101 @@
+@baseUrl = http://localhost:3000/api/v1
+@childId = 00000000-0000-4000-8000-000000000001
+@sessionId = 00000000-0000-4000-8000-000000000002
+@exerciseId = listen_choose
+
+GET {{baseUrl}}/health
+
+###
+GET {{baseUrl}}/letters?category=vowel&lookalike=false&q=a&child_id={{childId}}
+
+###
+GET {{baseUrl}}/letters/b?child_id={{childId}}
+
+###
+GET {{baseUrl}}/words?limit=12
+
+###
+GET {{baseUrl}}/exercise-types
+
+###
+GET {{baseUrl}}/exercise-types/{{exerciseId}}
+
+###
+POST {{baseUrl}}/children
+Content-Type: application/json
+
+{
+  "name": "Rara",
+  "age": 7,
+  "avatar_key": "bintang"
+}
+
+###
+GET {{baseUrl}}/children/{{childId}}
+
+###
+PUT {{baseUrl}}/children/{{childId}}
+Content-Type: application/json
+
+{
+  "name": "Rara",
+  "age": 8,
+  "weekly_target": 5
+}
+
+###
+PUT {{baseUrl}}/children/{{childId}}/settings
+Content-Type: application/json
+
+{
+  "font_scale": 1.1,
+  "letter_spacing": 0.08,
+  "speech_rate": 0.8,
+  "choice_count": 3,
+  "session_length": 10
+}
+
+###
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+
+{
+  "child_id": "{{childId}}",
+  "name": "Latihan pagi b dan d",
+  "exercise_type": "discriminate",
+  "started_at": "2026-11-24T01:10:00.000Z",
+  "ended_at": "2026-11-24T01:16:30.000Z",
+  "mood": "happy",
+  "items": [
+    { "item_index": 0, "letter": "b", "is_correct": true, "resolved": true, "attempts": 1, "hint_used": false, "response_ms": 2300, "chosen_value": "b" },
+    { "item_index": 1, "letter": "d", "is_correct": false, "resolved": true, "attempts": 2, "hint_used": false, "response_ms": 4100, "chosen_value": "b" }
+  ]
+}
+
+###
+GET {{baseUrl}}/sessions?child_id={{childId}}&limit=20&offset=0
+
+###
+GET {{baseUrl}}/sessions/{{sessionId}}
+
+###
+PUT {{baseUrl}}/sessions/{{sessionId}}
+Content-Type: application/json
+
+{
+  "name": "Latihan pagi",
+  "note": "Hari ini bersemangat",
+  "mood": "happy"
+}
+
+###
+DELETE {{baseUrl}}/sessions/{{sessionId}}
+
+###
+GET {{baseUrl}}/dashboard/{{childId}}
+
+###
+GET {{baseUrl}}/progress/{{childId}}?month=2026-11
+
+###
+GET {{baseUrl}}/recommendations/{{childId}}?limit=3
