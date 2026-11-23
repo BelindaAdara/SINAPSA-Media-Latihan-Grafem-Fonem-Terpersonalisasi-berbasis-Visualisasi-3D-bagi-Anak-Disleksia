@@ -20,7 +20,7 @@ Jalankan kembali `db/seed.sql` pada proyek Supabase yang sudah ada untuk mengakt
 3. Salin `.env.example` menjadi `.env`. URL awal menggunakan IP LAN komputer pengembangan saat ini (`192.168.18.52`). Jika alamat berubah, lihat `ipconfig` lalu ubah `EXPO_PUBLIC_API_URL` menjadi `http://<IP-LAN>:3000/api/v1`; jangan gunakan `localhost` pada ponsel.
 4. Jalankan `npm start`, lalu buka proyek dengan Expo Go. Jika firewall Windows meminta izin, izinkan koneksi jaringan privat ke backend.
 
-Verifikasi pengembangan: `npm run test:logic`, `npm run lint`, dan `npx expo export --platform android`. Paket tidak memakai foto, audio, font, video, atau model 3D eksternal. Bunyi menggunakan text-to-speech perangkat; bentuk huruf 3D dibuat dari data goresan dan mempunyai fallback 2D.
+Verifikasi pengembangan: `npm run test:logic`, `npm run lint`, dan `npx expo export --platform android`. Paket tidak memakai foto, audio, font, video, atau model 3D eksternal. Bunyi menggunakan text-to-speech perangkat; bentuk huruf dibuat dari data goresan. Jika WebGL tidak tersedia, viewer memakai proyeksi SVG pseudo-3D yang tetap dapat diputar dengan gestur.
 
 ### Build APK dengan EAS
 
@@ -41,6 +41,6 @@ Semua endpoint berada di `/api/v1`; contoh request ada di [backend/requests.http
 
 - Belum ada autentikasi: `child_id` adalah pengenal profil lokal, bukan bukti identitas. Simpan hanya nama panggilan, usia, dan data latihan. Satu perangkat menggunakan satu profil anak.
 - Pengguna telah menjalankan uji `backend/requests.http` terhadap Supabase: endpoint GET, PUT, dan DELETE yang dicoba mengembalikan 200; `POST /children` dan `POST /sessions` mengembalikan 201 Created (sesuai HTTP). `GET /letters` mengembalikan 26 huruf, kelima jenis latihan aktif, dan POST sesi mengembalikan `mastery_updates`. Hasil ini dilaporkan pengguna dan belum diverifikasi ulang otomatis.
-- Penggunaan suara, gerakan 3D/WebGL, fallback 2D, gestur tracing, tampilan pada ukuran layar berbeda, dan keterjangkauan backend dari perangkat masih perlu diperiksa di HP.
+- Penggunaan suara, gerakan 3D/WebGL dan fallback SVG pseudo-3D, gestur tracing, serta tampilan pada ukuran layar berbeda masih perlu diperiksa di HP.
 - TTS bahasa Indonesia dapat membacakan nama huruf alih-alih fonem; bunyi disampaikan sebagai suku kata.
 - Unit test backend/mobile, lint backend/mobile, ekspor bundle Android, dan uji API live yang dilaporkan pengguna berhasil. Build EAS dan uji perangkat belum dijalankan.

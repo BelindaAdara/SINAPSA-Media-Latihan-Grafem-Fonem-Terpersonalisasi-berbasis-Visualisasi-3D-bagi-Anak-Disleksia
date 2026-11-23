@@ -1,13 +1,32 @@
-import { Component, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, createElement, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, PanResponder, StyleSheet, View } from 'react-native';
-import { Canvas, useFrame } from '@react-three/fiber/native';
-import { MathUtils, PlaneGeometry, SphereGeometry } from 'three';
+import Svg, { Circle, Polygon, Polyline } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 import { useReduceMotion } from '../hooks/useReduceMotion';
-import { Letter2D, ThemedText } from '../components/ui';
-import { createStrokeGeometries } from './strokeGeometry';
+import { ThemedText } from '../components/ui';
+import { projectStrokes } from './strokeProjection';
 
-class CanvasBoundary extends Component {
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+let ThreeLetterScene;
+let sceneLoadError;
+let sceneLoadErrorLogged = false;
+
+function getThreeLetterScene() {
+  if (!ThreeLetterScene && !sceneLoadError) {
+    try {
+      ThreeLetterScene = require('./Letter3DScene').Letter3DScene;
+    } catch (error) {
+      sceneLoadError = error;
+    }
+  }
+  if (sceneLoadError && !sceneLoadErrorLogged) {
+    console.warn('[SINAPSA] 3D viewer unavailable; using 2D fallback.', sceneLoadError);
+    sceneLoadErrorLogged = true;
+  }
+  return ThreeLetterScene;
+}
+
+class RendererBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { error: null };
@@ -17,8 +36,8 @@ class CanvasBoundary extends Component {
     return { error };
   }
 
-  componentDidCatch() {
-    this.props.onError();
+  componentDidCatch(error) {
+    this.props.onError(error);
   }
 
   render() {
@@ -27,63 +46,84 @@ class CanvasBoundary extends Component {
   }
 }
 
-function LetterMeshes({ strokes, mirrored, autoRotate, reducedMotion, rotation, interacting, velocity, colors, darkMode }) {
-  const group = useRef(null);
-  const geometries = useMemo(() => createStrokeGeometries(strokes), [strokes]);
-  const shadowGeometry = useMemo(() => new PlaneGeometry(1.7, 0.24), []);
-  const dotGeometry = useMemo(() => new SphereGeometry(0.06, 12, 12), []);
+function ProceduralLetterViewer({ strokes, symbol, height, colors, mirrored, autoRotate, reduceMotion }) {
+  const [rotation, setRotation] = useState({ yaw: -0.55, pitch: 0.12 });
+  const [dragging, setDragging] = useState(false);
+  const lastGesture = useRef({ dx: 0, dy: 0 });
+  const lastTap = useRef(0);
+  const geometry = useMemo(
+    () => projectStrokes(strokes, rotation, mirrored),
+    [strokes, rotation, mirrored],
+  );
 
-  useEffect(() => () => {
-    geometries.entries.forEach((entry) => entry.geometry?.dispose());
-    geometries.capGeometry.dispose();
-    shadowGeometry.dispose();
-    dotGeometry.dispose();
-  }, [geometries, shadowGeometry, dotGeometry]);
+  useEffect(() => {
+    if (!autoRotate || reduceMotion || dragging) return undefined;
+    let frame;
+    let previousFrame = 0;
+    const rotate = (time) => {
+      if (time - previousFrame >= 80) {
+        previousFrame = time;
+        setRotation((current) => ({ ...current, yaw: current.yaw + 0.014 }));
+      }
+      frame = requestAnimationFrame(rotate);
+    };
+    frame = requestAnimationFrame(rotate);
+    return () => cancelAnimationFrame(frame);
+  }, [autoRotate, reduceMotion, dragging]);
 
-  useFrame((_, delta) => {
-    if (!group.current) return;
-    group.current.scale.x = MathUtils.damp(group.current.scale.x, mirrored ? -1 : 1, 7, delta);
-    group.current.rotation.x = rotation.current.x;
-    if (interacting) {
-      group.current.rotation.y = rotation.current.y;
-    } else if (autoRotate && !reducedMotion) {
-      group.current.rotation.y += delta * 0.3;
-    } else if (Math.abs(velocity.current.y) + Math.abs(velocity.current.x) > 0.001) {
-      group.current.rotation.y += velocity.current.y * delta;
-      group.current.rotation.x = MathUtils.clamp(group.current.rotation.x + velocity.current.x * delta, -0.61, 0.61);
-      const decay = Math.pow(0.08, delta);
-      velocity.current = { x: velocity.current.x * decay, y: velocity.current.y * decay };
-    }
-  });
+  const responder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2,
+    onPanResponderGrant: () => {
+      lastGesture.current = { dx: 0, dy: 0 };
+      setDragging(true);
+    },
+    onPanResponderMove: (_, gesture) => {
+      const deltaX = gesture.dx - lastGesture.current.dx;
+      const deltaY = gesture.dy - lastGesture.current.dy;
+      lastGesture.current = { dx: gesture.dx, dy: gesture.dy };
+      setRotation((current) => ({
+        yaw: current.yaw + deltaX * 0.012,
+        pitch: clamp(current.pitch + deltaY * 0.01, -1.15, 1.15),
+      }));
+    },
+    onPanResponderRelease: (event) => {
+      setDragging(false);
+      const now = event.nativeEvent.timestamp;
+      if (now - lastTap.current < 300) setRotation({ yaw: -0.55, pitch: 0.12 });
+      lastTap.current = now;
+    },
+    onPanResponderTerminate: () => setDragging(false),
+  }), []);
 
   return (
-    <>
-      <color attach="background" args={[colors.background]} />
-      <ambientLight intensity={darkMode ? 0.55 : 0.8} />
-      <directionalLight position={[2, 3, 4]} intensity={darkMode ? 0.7 : 1.1} color={colors.body} />
-      <group ref={group} scale={[1, 1, 1]}>
-        {geometries.entries.map((entry, index) => entry.type === 'dot' ? (
-          <mesh key={`dot-${index}`} geometry={dotGeometry} position={entry.position}>
-            <meshStandardMaterial color={colors.body} roughness={0.45} metalness={0.04} />
-          </mesh>
-        ) : (
-          <group key={`line-${index}`}>
-            <mesh geometry={entry.geometry}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} metalness={0.03} />
-            </mesh>
-            <mesh geometry={geometries.capGeometry} position={entry.start}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} />
-            </mesh>
-            <mesh geometry={geometries.capGeometry} position={entry.end}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} />
-            </mesh>
-          </group>
+    <View
+      {...responder.panHandlers}
+      accessible
+      accessibilityLabel={`Model huruf ${symbol}. Seret untuk memutar, ketuk dua kali untuk mengatur ulang.`}
+      style={[styles.viewer, { height, backgroundColor: colors.background }]}
+    >
+      <Svg width="100%" height="100%" viewBox="0 0 160 160">
+        {geometry.faces.map((face) => (
+          <Polygon key={face.key} points={face.points} fill={colors.shadow} />
         ))}
-      </group>
-      <mesh position={[0, -0.83, -0.16]} rotation={[-Math.PI / 2, 0, 0]} geometry={shadowGeometry}>
-        <meshBasicMaterial color={colors.shadow} transparent opacity={0.28} />
-      </mesh>
-    </>
+        {geometry.backPaths.map((path) => (
+          <Polyline key={path.key} points={path.points} fill="none" stroke={colors.shadow} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+        {geometry.backDots.map((dot) => (
+          <Circle key={dot.key} cx={dot.x} cy={dot.y} r="7" fill={colors.shadow} />
+        ))}
+        {geometry.frontPaths.map((path) => (
+          <Polyline key={path.key} points={path.points} fill="none" stroke={colors.body} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+        {geometry.frontDots.map((dot) => (
+          <Circle key={dot.key} cx={dot.x} cy={dot.y} r="6" fill={colors.body} />
+        ))}
+      </Svg>
+      <View pointerEvents="none" style={styles.viewerHint}>
+        <ThemedText variant="caption" style={styles.center}>Geser untuk memutar · ketuk dua kali untuk mengatur ulang</ThemedText>
+      </View>
+    </View>
   );
 }
 
@@ -104,11 +144,13 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
   const resumeTimer = useRef(null);
   const pointList = Array.isArray(strokes) ? strokes : strokes?.strokes || [];
 
+  const Scene = getThreeLetterScene();
+
   useEffect(() => {
-    if (ready || failed) return undefined;
+    if (!Scene || ready || failed) return undefined;
     const timeout = setTimeout(() => setFailed(true), 3000);
     return () => clearTimeout(timeout);
-  }, [ready, failed]);
+  }, [Scene, ready, failed]);
 
   useEffect(() => () => clearTimeout(resumeTimer.current), []);
 
@@ -121,7 +163,7 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
       velocity.current = { x: 0, y: 0 };
     },
     onPanResponderMove: (_, gesture) => {
-      rotation.current.x = MathUtils.clamp(rotation.current.x + gesture.dy * 0.004, -0.61, 0.61);
+      rotation.current.x = clamp(rotation.current.x + gesture.dy * 0.004, -0.61, 0.61);
       rotation.current.y += gesture.dx * 0.006;
     },
     onPanResponderRelease: (event, gesture) => {
@@ -147,10 +189,29 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
 
   if (failed) {
     return (
-      <View style={[styles.fallback, { height, backgroundColor: themeColors.background }]}>
-        <Letter2D strokes={pointList} width={110} height={height - 44} color={themeColors.body} mirrored={mirrored} />
-        <ThemedText variant="caption" style={styles.center}>Tampilan 3D tidak tersedia di perangkat ini</ThemedText>
-      </View>
+      <ProceduralLetterViewer
+        strokes={pointList}
+        symbol={symbol}
+        height={height}
+        colors={themeColors}
+        mirrored={mirrored}
+        autoRotate={autoRotate}
+        reduceMotion={reduceMotion}
+      />
+    );
+  }
+
+  if (!Scene) {
+    return (
+      <ProceduralLetterViewer
+        strokes={pointList}
+        symbol={symbol}
+        height={height}
+        colors={themeColors}
+        mirrored={mirrored}
+        autoRotate={autoRotate}
+        reduceMotion={reduceMotion}
+      />
     );
   }
 
@@ -161,25 +222,25 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
       accessibilityLabel={`Model tiga dimensi huruf ${symbol}. Seret untuk memutar, ketuk dua kali untuk mengatur ulang.`}
       style={[styles.viewer, { height, backgroundColor: themeColors.background }]}
     >
-      <Canvas
-        style={{ flex: 1 }}
-        camera={{ position: [0, 0, 3.6], near: 0.1, far: 20 }}
-        onCreated={() => setReady(true)}
+      <RendererBoundary
+        onError={(error) => {
+          console.warn('[SINAPSA] 3D renderer failed; using 2D fallback.', error);
+          setFailed(true);
+        }}
       >
-        <CanvasBoundary onError={() => setFailed(true)}>
-          <LetterMeshes
-            strokes={pointList}
-            mirrored={mirrored}
-            autoRotate={autoRotate}
-            reducedMotion={reduceMotion}
-            rotation={rotation}
-            interacting={interacting}
-            velocity={velocity}
-            colors={themeColors}
-            darkMode={theme.theme === 'dark'}
-          />
-        </CanvasBoundary>
-      </Canvas>
+        {createElement(Scene, {
+          strokes: pointList,
+          mirrored,
+          autoRotate,
+          reducedMotion: reduceMotion,
+          rotation,
+          interacting,
+          velocityRef: velocity,
+          colors: themeColors,
+          darkMode: theme.theme === 'dark',
+          onReady: () => setReady(true),
+        })}
+      </RendererBoundary>
       {!ready ? (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator color={themeColors.body} />
@@ -192,6 +253,7 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
 const styles = StyleSheet.create({
   viewer: { borderRadius: 22, overflow: 'hidden' },
   fallback: { borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 },
+  viewerHint: { position: 'absolute', left: 12, right: 12, bottom: 8, alignItems: 'center' },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   center: { textAlign: 'center' },
 });
