@@ -1,5 +1,5 @@
 import { Component, createElement, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, PanResponder, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Polygon, Polyline } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 import { useReduceMotion } from '../hooks/useReduceMotion';
@@ -7,6 +7,7 @@ import { ThemedText } from '../components/ui';
 import { projectStrokes } from './strokeProjection';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const INITIAL_ROTATION = { yaw: -0.55, pitch: 0.14 };
 let ThreeLetterScene;
 let sceneLoadError;
 let sceneLoadErrorLogged = false;
@@ -46,30 +47,56 @@ class RendererBoundary extends Component {
   }
 }
 
+function ViewerButton({ title, onPress, active = false, colors }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.viewerButton,
+        {
+          backgroundColor: active ? colors.accent : colors.surface,
+          borderColor: active ? colors.accent : colors.border,
+          opacity: pressed ? 0.82 : 1,
+        },
+      ]}
+    >
+      <ThemedText
+        variant="caption"
+        style={{ color: active ? colors.onAccent : colors.text, fontWeight: '700' }}
+      >
+        {title}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 function ProceduralLetterViewer({ strokes, symbol, height, colors, mirrored, autoRotate, reduceMotion }) {
-  const [rotation, setRotation] = useState({ yaw: -0.55, pitch: 0.12 });
+  const [rotation, setRotation] = useState(INITIAL_ROTATION);
   const [dragging, setDragging] = useState(false);
+  const [autoSpin, setAutoSpin] = useState(autoRotate && !reduceMotion);
   const lastGesture = useRef({ dx: 0, dy: 0 });
   const lastTap = useRef(0);
   const geometry = useMemo(
-    () => projectStrokes(strokes, rotation, mirrored),
-    [strokes, rotation, mirrored],
+    () => projectStrokes(strokes, rotation, mirrored, colors),
+    [strokes, rotation, mirrored, colors],
   );
 
   useEffect(() => {
-    if (!autoRotate || reduceMotion || dragging) return undefined;
+    if (!autoSpin || dragging) return undefined;
     let frame;
     let previousFrame = 0;
     const rotate = (time) => {
       if (time - previousFrame >= 80) {
         previousFrame = time;
-        setRotation((current) => ({ ...current, yaw: current.yaw + 0.014 }));
+        setRotation((current) => ({ ...current, yaw: current.yaw + 0.016 }));
       }
       frame = requestAnimationFrame(rotate);
     };
     frame = requestAnimationFrame(rotate);
     return () => cancelAnimationFrame(frame);
-  }, [autoRotate, reduceMotion, dragging]);
+  }, [autoSpin, dragging]);
 
   const responder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -90,54 +117,56 @@ function ProceduralLetterViewer({ strokes, symbol, height, colors, mirrored, aut
     onPanResponderRelease: (event) => {
       setDragging(false);
       const now = event.nativeEvent.timestamp;
-      if (now - lastTap.current < 300) setRotation({ yaw: -0.55, pitch: 0.12 });
+      if (now - lastTap.current < 300) setRotation(INITIAL_ROTATION);
       lastTap.current = now;
     },
     onPanResponderTerminate: () => setDragging(false),
   }), []);
 
   return (
-    <View
-      {...responder.panHandlers}
-      accessible
-      accessibilityLabel={`Model huruf ${symbol}. Seret untuk memutar, ketuk dua kali untuk mengatur ulang.`}
-      style={[styles.viewer, { height, backgroundColor: colors.background }]}
-    >
-      <Svg width="100%" height="100%" viewBox="0 0 160 160">
-        {geometry.faces.map((face) => (
-          <Polygon key={face.key} points={face.points} fill={colors.shadow} />
-        ))}
-        {geometry.backPaths.map((path) => (
-          <Polyline key={path.key} points={path.points} fill="none" stroke={colors.shadow} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
-        ))}
-        {geometry.backDots.map((dot) => (
-          <Circle key={dot.key} cx={dot.x} cy={dot.y} r="7" fill={colors.shadow} />
-        ))}
-        {geometry.frontPaths.map((path) => (
-          <Polyline key={path.key} points={path.points} fill="none" stroke={colors.body} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
-        ))}
-        {geometry.frontDots.map((dot) => (
-          <Circle key={dot.key} cx={dot.x} cy={dot.y} r="6" fill={colors.body} />
-        ))}
-      </Svg>
-      <View pointerEvents="none" style={styles.viewerHint}>
-        <ThemedText variant="caption" style={styles.center}>Geser untuk memutar · ketuk dua kali untuk mengatur ulang</ThemedText>
+    <View style={[styles.viewerFrame, { height, borderColor: colors.border || '#D6DCE8', backgroundColor: colors.background }]}>
+      <View {...responder.panHandlers} style={styles.canvasWrap} accessible accessibilityLabel={`Model huruf ${symbol}. Seret untuk memutar.`}>
+        <Svg width="100%" height="100%" viewBox="0 0 160 160">
+          {geometry.faces.map((face) => (
+            <Polygon key={face.key} points={face.points} fill={face.fill} opacity="0.92" />
+          ))}
+          {geometry.backPaths.map((path) => (
+            <Polyline key={path.key} points={path.points} fill="none" stroke={geometry.backColor} strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />
+          ))}
+          {geometry.backDots.map((dot) => (
+            <Circle key={dot.key} cx={dot.x} cy={dot.y} r="7" fill={geometry.backColor} opacity="0.8" />
+          ))}
+          {geometry.frontPaths.map((path) => (
+            <Polyline key={path.key} points={path.points} fill="none" stroke={geometry.frontColor} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
+          ))}
+          {geometry.frontDots.map((dot) => (
+            <Circle key={dot.key} cx={dot.x} cy={dot.y} r="6" fill={geometry.frontColor} />
+          ))}
+        </Svg>
       </View>
+      <View style={styles.controls}>
+        <ViewerButton title="Atur ulang" onPress={() => setRotation(INITIAL_ROTATION)} colors={colors} />
+        <ViewerButton title={autoSpin ? 'Jeda putar' : 'Putar'} onPress={() => setAutoSpin((value) => !value)} active={autoSpin} colors={colors} />
+      </View>
+      <ThemedText variant="caption" style={[styles.center, { color: colors.textSecondary || '#5B6475' }]}>Geser huruf untuk mengamati bentuknya</ThemedText>
     </View>
   );
 }
 
-export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true, colors, height = 250 }) {
+export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true, colors, height = 250, resetKey = 0 }) {
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
   const themeColors = colors || {
     body: theme.colors.accent,
     shadow: theme.colors.secondary,
-    background: theme.colors.bg,
+    background: theme.colors.surface,
+    border: theme.colors.border,
+    textSecondary: theme.colors.textSecondary,
   };
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [interacting, setInteracting] = useState(false);
+  const [attempt, setAttempt] = useState({ symbol, resetKey, hasScene: false });
   const rotation = useRef({ x: 0, y: 0 });
   const velocity = useRef({ x: 0, y: 0 });
   const lastTap = useRef(0);
@@ -145,12 +174,20 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
   const pointList = Array.isArray(strokes) ? strokes : strokes?.strokes || [];
 
   const Scene = getThreeLetterScene();
+  const nextAttempt = { symbol, resetKey, hasScene: Boolean(Scene) };
+  if (attempt.symbol !== nextAttempt.symbol || attempt.resetKey !== nextAttempt.resetKey || attempt.hasScene !== nextAttempt.hasScene) {
+    setAttempt(nextAttempt);
+    setReady(false);
+    setFailed(false);
+    rotation.current = { x: 0, y: 0 };
+    velocity.current = { x: 0, y: 0 };
+  }
 
   useEffect(() => {
     if (!Scene || ready || failed) return undefined;
     const timeout = setTimeout(() => setFailed(true), 3000);
     return () => clearTimeout(timeout);
-  }, [Scene, ready, failed]);
+  }, [Scene, ready, failed, symbol, resetKey]);
 
   useEffect(() => () => clearTimeout(resumeTimer.current), []);
 
@@ -184,12 +221,13 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
   }), []);
 
   if (!pointList.length) {
-    return <View style={[styles.fallback, { height }]}><ThemedText>Gambar huruf belum tersedia.</ThemedText></View>;
+    return <View style={[styles.fallback, { height, borderColor: themeColors.border || theme.colors.border }]}><ThemedText>Gambar huruf belum tersedia.</ThemedText></View>;
   }
 
-  if (failed) {
+  if (failed || !Scene) {
     return (
       <ProceduralLetterViewer
+        key={`${symbol}-${resetKey}-${mirrored}`}
         strokes={pointList}
         symbol={symbol}
         height={height}
@@ -201,59 +239,58 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
     );
   }
 
-  if (!Scene) {
-    return (
-      <ProceduralLetterViewer
-        strokes={pointList}
-        symbol={symbol}
-        height={height}
-        colors={themeColors}
-        mirrored={mirrored}
-        autoRotate={autoRotate}
-        reduceMotion={reduceMotion}
-      />
-    );
+  function resetView() {
+    rotation.current = { x: 0, y: 0 };
+    velocity.current = { x: 0, y: 0 };
   }
 
   return (
-    <View
-      {...responder.panHandlers}
-      accessible
-      accessibilityLabel={`Model tiga dimensi huruf ${symbol}. Seret untuk memutar, ketuk dua kali untuk mengatur ulang.`}
-      style={[styles.viewer, { height, backgroundColor: themeColors.background }]}
-    >
-      <RendererBoundary
-        onError={(error) => {
-          console.warn('[SINAPSA] 3D renderer failed; using 2D fallback.', error);
-          setFailed(true);
-        }}
+    <View style={[styles.viewerFrame, { height, borderColor: theme.colors.border, backgroundColor: themeColors.background }]}>
+      <View
+        {...responder.panHandlers}
+        accessible
+        accessibilityLabel={`Model tiga dimensi huruf ${symbol}. Seret untuk memutar, ketuk dua kali untuk mengatur ulang.`}
+        style={styles.canvasWrap}
       >
-        {createElement(Scene, {
-          strokes: pointList,
-          mirrored,
-          autoRotate,
-          reducedMotion: reduceMotion,
-          rotation,
-          interacting,
-          velocityRef: velocity,
-          colors: themeColors,
-          darkMode: theme.theme === 'dark',
-          onReady: () => setReady(true),
-        })}
-      </RendererBoundary>
-      {!ready ? (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator color={themeColors.body} />
-        </View>
-      ) : null}
+        <RendererBoundary
+          onError={(error) => {
+            console.warn('[SINAPSA] 3D renderer failed; using 2D fallback.', error);
+            setFailed(true);
+          }}
+        >
+          {createElement(Scene, {
+            strokes: pointList,
+            mirrored,
+            autoRotate,
+            reducedMotion: reduceMotion,
+            rotation,
+            interacting,
+            velocityRef: velocity,
+            colors: themeColors,
+            darkMode: theme.theme === 'dark',
+            onReady: () => setReady(true),
+          })}
+        </RendererBoundary>
+        {!ready ? (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator color={themeColors.body} />
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.controls}>
+        <ViewerButton title="Atur ulang" onPress={resetView} colors={theme.colors} />
+      </View>
+      <ThemedText variant="caption" style={[styles.center, { color: theme.colors.textSecondary }]}>Geser untuk memutar · ketuk dua kali untuk mengatur ulang</ThemedText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  viewer: { borderRadius: 22, overflow: 'hidden' },
-  fallback: { borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 },
-  viewerHint: { position: 'absolute', left: 12, right: 12, bottom: 8, alignItems: 'center' },
+  viewerFrame: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, padding: 10, gap: 8 },
+  canvasWrap: { flex: 1, minHeight: 180, borderRadius: 18, overflow: 'hidden' },
+  controls: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  viewerButton: { minHeight: 40, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  fallback: { borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   center: { textAlign: 'center' },
 });

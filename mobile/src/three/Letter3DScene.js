@@ -35,29 +35,30 @@ function LetterMeshes({ strokes, mirrored, autoRotate, reducedMotion, rotation, 
   return (
     <>
       <color attach="background" args={[colors.background]} />
-      <ambientLight intensity={darkMode ? 0.55 : 0.8} />
-      <directionalLight position={[2, 3, 4]} intensity={darkMode ? 0.7 : 1.1} color={colors.body} />
+      <ambientLight intensity={darkMode ? 0.62 : 0.86} />
+      <directionalLight position={[2.5, 3.5, 4.5]} intensity={darkMode ? 0.85 : 1.15} />
+      <directionalLight position={[-2, 1, 3]} intensity={0.35} color="#ffffff" />
       <group ref={group} scale={[1, 1, 1]}>
         {geometries.entries.map((entry, index) => entry.type === 'dot' ? (
           <mesh key={`dot-${index}`} geometry={dotGeometry} position={entry.position}>
-            <meshStandardMaterial color={colors.body} roughness={0.45} metalness={0.04} />
+            <meshStandardMaterial color={colors.body} roughness={0.35} metalness={0.08} emissive={colors.body} emissiveIntensity={0.08} />
           </mesh>
         ) : (
           <group key={`line-${index}`}>
             <mesh geometry={entry.geometry}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} metalness={0.03} />
+              <meshStandardMaterial color={colors.body} roughness={0.38} metalness={0.06} emissive={colors.body} emissiveIntensity={0.06} />
             </mesh>
             <mesh geometry={geometries.capGeometry} position={entry.start}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} />
+              <meshStandardMaterial color={colors.body} roughness={0.38} metalness={0.06} />
             </mesh>
             <mesh geometry={geometries.capGeometry} position={entry.end}>
-              <meshStandardMaterial color={colors.body} roughness={0.48} />
+              <meshStandardMaterial color={colors.body} roughness={0.38} metalness={0.06} />
             </mesh>
           </group>
         ))}
       </group>
       <mesh position={[0, -0.83, -0.16]} rotation={[-Math.PI / 2, 0, 0]} geometry={shadowGeometry}>
-        <meshBasicMaterial color={colors.shadow} transparent opacity={0.28} />
+        <meshBasicMaterial color={colors.shadow} transparent opacity={0.3} />
       </mesh>
     </>
   );

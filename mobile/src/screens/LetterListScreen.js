@@ -98,7 +98,7 @@ export function LetterListScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={`Huruf ${item.symbol}, ${item.phoneme_ipa}${item.is_lookalike ? ', huruf mirip' : ''}`}
             onPress={() => navigation.navigate('LetterDetail', { symbol: item.symbol })}
-            style={styles.tile}
+            style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.88 : 1 }]}
           >
             <CategoryCard isVowel={item.category === 'vowel'} lookalike={item.is_lookalike} style={styles.letterCard}>
               <View style={styles.letterRow}>
@@ -106,6 +106,7 @@ export function LetterListScreen({ navigation }) {
                 {item.is_lookalike ? <ThemedText variant="caption" style={{ color: letterCategory.onCategory }}>⇄</ThemedText> : null}
               </View>
               <ThemedText variant="caption" style={[styles.center, { color: letterCategory.onCategory }]}>{item.phoneme_ipa}</ThemedText>
+              <ThemedText variant="caption" style={[styles.center, { color: letterCategory.onCategory, fontWeight: '700' }]}>Lihat detail</ThemedText>
             </CategoryCard>
           </Pressable>
         )}
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   letterList: { flex: 1 },
   gridRow: { gap: 10 },
   tile: { flex: 1 },
-  letterCard: { minHeight: 116, padding: 10, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  letterCard: { minHeight: 128, padding: 10, alignItems: 'center', justifyContent: 'center', gap: 2, borderWidth: 2 },
   letterRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 3 },
   center: { textAlign: 'center' },
 });

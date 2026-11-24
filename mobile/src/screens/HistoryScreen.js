@@ -46,7 +46,12 @@ export function HistoryScreen({ navigation }) {
       {!sessions.length && status === 'ready'
         ? <EmptyState title="Belum ada riwayat" message="Sesi latihan yang tersimpan akan muncul di sini." />
         : sessions.map((session) => (
-          <Pressable key={session.id} onPress={() => navigation.navigate('SessionDetail', { sessionId: session.id })} accessibilityRole="button">
+          <Pressable
+            key={session.id}
+            onPress={() => navigation.navigate('SessionDetail', { sessionId: session.id })}
+            accessibilityRole="button"
+            style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
+          >
             <Card style={styles.session}>
               <View style={styles.sessionHeading}>
                 <ThemedText variant="subtitle" style={styles.flex}>{session.name}</ThemedText>
@@ -56,7 +61,10 @@ export function HistoryScreen({ navigation }) {
               <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
                 {new Date(session.started_at).toLocaleString('id-ID')} · {formatDuration(session.duration_seconds)}
               </ThemedText>
-              <ThemedText variant="caption">{session.correct_items} dari {session.total_items} benar langsung</ThemedText>
+              <View style={styles.footerRow}>
+                <ThemedText variant="caption" style={styles.flex}>{session.correct_items} dari {session.total_items} benar langsung</ThemedText>
+                <ThemedText variant="caption" style={{ color: colors.accent, fontWeight: '700' }}>Buka ›</ThemedText>
+              </View>
             </Card>
           </Pressable>
         ))}
@@ -68,5 +76,6 @@ export function HistoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   session: { gap: 3 },
   sessionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  footerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   flex: { flex: 1 },
 });

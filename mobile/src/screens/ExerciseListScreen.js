@@ -47,9 +47,10 @@ export function ExerciseListScreen({ navigation }) {
           accessibilityState={{ disabled: !type.is_active }}
           disabled={!type.is_active}
           onPress={() => navigation.navigate('ExerciseDetail', { exerciseType: type.id })}
+          style={({ pressed }) => ({ opacity: !type.is_active ? 0.72 : pressed ? 0.9 : 1 })}
         >
-          <Card style={[styles.exercise, { borderColor: type.is_active ? colors.border : colors.secondary, opacity: type.is_active ? 1 : 0.72 }]}>
-            <View style={[styles.icon, { backgroundColor: colors.secondary }]}>
+          <Card style={[styles.exercise, { borderColor: type.is_active ? colors.accent : colors.border, borderWidth: type.is_active ? 2 : 1 }]}>
+            <View style={[styles.icon, { backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border }]}>
               <ThemedText style={styles.iconText}>{icons[type.icon_key] || '🌟'}</ThemedText>
             </View>
             <View style={styles.details}>
@@ -57,7 +58,7 @@ export function ExerciseListScreen({ navigation }) {
               <ThemedText variant="caption" style={{ color: colors.textSecondary }}>{type.description}</ThemedText>
               {!type.is_active ? <ThemedText variant="caption" style={{ color: colors.textSecondary, fontWeight: '700' }}>Segera hadir</ThemedText> : null}
             </View>
-            <ThemedText variant="subtitle" style={{ color: colors.accent }}>›</ThemedText>
+            <ThemedText variant="subtitle" style={{ color: colors.accent, fontWeight: '800' }}>Buka ›</ThemedText>
           </Card>
         </Pressable>
       ))}

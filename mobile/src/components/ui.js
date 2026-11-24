@@ -62,11 +62,15 @@ export function PrimaryButton({ title, onPress, disabled = false, secondary = fa
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: secondary ? colors.secondary : colors.accent, opacity: disabled ? 0.55 : pressed ? 0.82 : 1 },
+        {
+          backgroundColor: secondary ? colors.surface : colors.accent,
+          borderColor: secondary ? colors.accent : colors.accent,
+          opacity: disabled ? 0.55 : pressed ? 0.86 : 1,
+        },
         style,
       ]}
     >
-      <Text style={{ color: secondary ? colors.text : colors.onAccent, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
+      <Text style={{ color: secondary ? colors.accent : colors.onAccent, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
         {title}
       </Text>
     </Pressable>
@@ -92,17 +96,18 @@ export function Chip({ title, selected, onPress, disabled = false, style, access
       accessibilityLabel={accessibilityLabel || title}
       onPress={onPress}
       disabled={disabled}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
         {
           backgroundColor: selected ? colors.secondary : colors.surface,
           borderColor: selected ? colors.accent : colors.border,
-          opacity: disabled ? 0.65 : 1,
+          borderWidth: selected ? 2 : 1,
+          opacity: disabled ? 0.65 : pressed ? 0.86 : 1,
         },
         style,
       ]}
     >
-      <ThemedText variant="caption" style={{ fontWeight: selected ? '700' : '500' }}>{title}</ThemedText>
+      <ThemedText variant="caption" style={{ fontWeight: selected ? '700' : '600' }}>{title}</ThemedText>
     </Pressable>
   );
 }
@@ -259,7 +264,15 @@ export function SectionTitle({ children, action, onAction }) {
   return (
     <View style={styles.sectionTitle}>
       <ThemedText variant="subtitle" style={{ flex: 1 }}>{children}</ThemedText>
-      {action ? <Pressable onPress={onAction} accessibilityRole="button"><ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{action}</ThemedText></Pressable> : null}
+      {action ? (
+        <Pressable
+          onPress={onAction}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.inlineAction, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 }]}
+        >
+          <ThemedText style={{ color: colors.accent, fontWeight: '700' }}>{action}</ThemedText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -288,12 +301,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  button: { minHeight: 56, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 15, justifyContent: 'center' },
+  button: { minHeight: 56, borderRadius: 20, borderWidth: 2, paddingHorizontal: 20, paddingVertical: 15, justifyContent: 'center', alignItems: 'center' },
   chip: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 8, justifyContent: 'center', alignItems: 'center', borderRadius: 24, borderWidth: 1 },
   stateCard: { alignItems: 'center', gap: 12, marginTop: 16 },
   stateIcon: { fontSize: 42, lineHeight: 52 },
   center: { textAlign: 'center' },
-  backButton: { alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center' },
+  backButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
+  inlineAction: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, borderWidth: 1 },
   stateButton: { width: '100%', marginTop: 4 },
   skeleton: { borderRadius: 20, opacity: 0.45 },
   toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

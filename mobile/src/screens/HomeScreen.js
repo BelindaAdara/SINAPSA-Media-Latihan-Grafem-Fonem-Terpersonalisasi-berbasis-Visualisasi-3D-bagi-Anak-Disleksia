@@ -86,12 +86,17 @@ export function HomeScreen({ navigation }) {
       {data.last_session ? (
         <Card>
           <SectionTitle action="Lihat semua riwayat" onAction={() => navigation.navigate('History')}>Latihan Terakhir</SectionTitle>
-          <Pressable onPress={() => navigation.navigate('SessionDetail', { sessionId: data.last_session.id })} accessibilityRole="button">
+          <Pressable
+            onPress={() => navigation.navigate('SessionDetail', { sessionId: data.last_session.id })}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.lastSession, { borderColor: colors.border, backgroundColor: colors.bg, opacity: pressed ? 0.88 : 1 }]}
+          >
             <ThemedText variant="subtitle">{data.last_session.name}</ThemedText>
             <ThemedText>{data.last_session.exercise_type} · skor {data.last_session.score}</ThemedText>
             <ThemedText variant="caption" style={{ color: colors.textSecondary }}>
               {new Date(data.last_session.started_at).toLocaleDateString('id-ID')}
             </ThemedText>
+            <ThemedText variant="caption" style={{ color: colors.accent, fontWeight: '700', marginTop: 4 }}>Buka detail ›</ThemedText>
           </Pressable>
         </Card>
       ) : (
@@ -107,13 +112,14 @@ export function HomeScreen({ navigation }) {
           {data.recommended_letters.map((entry) => (
             <Pressable
               key={entry.letter}
-              style={[styles.recommend, { backgroundColor: colors.secondary }]}
+              style={({ pressed }) => [styles.recommend, { backgroundColor: colors.secondary, borderColor: colors.accent, opacity: pressed ? 0.86 : 1 }]}
               onPress={() => navigation.navigate('Huruf', { screen: 'LetterDetail', params: { symbol: entry.letter } })}
               accessibilityRole="button"
               accessibilityLabel={`Huruf ${entry.letter}, ${entry.reason}`}
             >
               <ThemedText variant="title">{entry.letter}</ThemedText>
               <ThemedText variant="caption" style={styles.center}>{entry.reason}</ThemedText>
+              <ThemedText variant="caption" style={{ color: colors.accent, fontWeight: '700', marginTop: 2 }}>Buka</ThemedText>
             </Pressable>
           ))}
         </View>
@@ -142,6 +148,7 @@ const styles = StyleSheet.create({
   targetText: { flex: 1 },
   ringLabel: { textAlign: 'center', marginTop: -55, marginBottom: 39, fontWeight: '700' },
   recommendations: { flexDirection: 'row', gap: 8, marginVertical: 12 },
-  recommend: { flex: 1, minHeight: 90, borderRadius: 18, alignItems: 'center', justifyContent: 'center', padding: 6 },
+  recommend: { flex: 1, minHeight: 102, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center', padding: 8 },
+  lastSession: { marginTop: 8, borderWidth: 1, borderRadius: 16, padding: 12 },
   center: { textAlign: 'center' },
 });
