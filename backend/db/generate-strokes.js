@@ -54,7 +54,7 @@ function generateStrokes() {
 const letters = [
   ['a', '/a/', 'a', 'vowel', false, ['e', 'o'], 1, 'apel', '🍎', 'awan', '☁️'],
   ['b', '/b/', 'ba', 'consonant', true, ['d', 'p'], 3, 'bola', '⚽', 'baju', '👕'],
-  ['c', '/tʃ/', 'ce', 'consonant', false, ['e', 'o'], 2, 'cabai', '🌶️', 'cicak', '🦎'],
+  ['c', '/tʃ/', 'cé', 'consonant', false, ['e', 'o'], 2, 'cabai', '🌶️', 'cicak', '🦎'],
   ['d', '/d/', 'da', 'consonant', true, ['b', 'q'], 3, 'dadu', '🎲', 'daun', '🍃'],
   ['e', '/e/ atau /ə/', 'e', 'vowel', false, ['a', 'c'], 2, 'elang', '🦅', 'ember', '🪣'],
   ['f', '/f/', 'fa', 'consonant', false, ['t'], 2, 'film', '🎬', 'foto', '📷'],
@@ -104,7 +104,7 @@ const vowelHints = {
 
 const consonantHints = {
   b: 'Bibir tertutup, lalu dilepas: b.',
-  c: "Bunyikan huruf c: ce, seperti bunyi awal kata 'cicak'.",
+  c: "Bunyikan huruf c: cé, seperti bunyi awal kata 'cicak'.",
   d: 'Ujung lidah menyentuh gigi atas, lalu dilepas: d.',
   f: 'Gigi atas menyentuh bibir bawah, lalu hembuskan: fa.',
   g: 'Pangkal lidah menyentuh langit-langit, lalu lepaskan: ga.',

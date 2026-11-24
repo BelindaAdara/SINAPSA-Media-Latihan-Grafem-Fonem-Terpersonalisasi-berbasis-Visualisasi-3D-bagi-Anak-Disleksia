@@ -110,7 +110,7 @@ function ProceduralLetterViewer({ strokes, symbol, height, colors, mirrored, aut
       const deltaY = gesture.dy - lastGesture.current.dy;
       lastGesture.current = { dx: gesture.dx, dy: gesture.dy };
       setRotation((current) => ({
-        yaw: current.yaw + deltaX * 0.012,
+        yaw: current.yaw - deltaX * 0.012,
         pitch: clamp(current.pitch + deltaY * 0.01, -1.15, 1.15),
       }));
     },
@@ -201,10 +201,10 @@ export function Letter3D({ symbol, strokes, mirrored = false, autoRotate = true,
     },
     onPanResponderMove: (_, gesture) => {
       rotation.current.x = clamp(rotation.current.x + gesture.dy * 0.004, -0.61, 0.61);
-      rotation.current.y += gesture.dx * 0.006;
+      rotation.current.y -= gesture.dx * 0.006;
     },
     onPanResponderRelease: (event, gesture) => {
-      velocity.current = { x: gesture.vy * 0.08, y: gesture.vx * 0.08 };
+      velocity.current = { x: gesture.vy * 0.08, y: -gesture.vx * 0.08 };
       setInteracting(false);
       resumeTimer.current = setTimeout(() => {
         velocity.current = { x: 0, y: 0 };
