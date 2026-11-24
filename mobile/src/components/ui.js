@@ -1,6 +1,6 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Polygon } from 'react-native-svg';
+import Svg, { Circle, Path, Polygon, Polyline } from 'react-native-svg';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { useTheme } from '../theme/ThemeContext';
@@ -174,21 +174,36 @@ export function Letter2D({ strokes, width = 112, height = 132, color, mirrored =
     <Svg width={width} height={height} viewBox="0 0 100 140" style={style} accessibilityLabel="Gambar garis huruf">
       {list.map((stroke, index) => {
         const toPoint = ([x, y]) => `${10 + x * 80},${100 - y * 65}`;
+        const transform = mirrored ? 'translate(100 0) scale(-1 1)' : undefined;
         if (stroke.type === 'dot') {
           const [x, y] = stroke.points[0];
-          return <Circle key={`${stroke.order}-${index}`} cx={10 + x * 80} cy={100 - y * 65} r="5.5" fill={color || colors.accent} />;
+          return <Circle key={`${stroke.order}-${index}`} cx={10 + x * 80} cy={100 - y * 65} r="5.5" fill={color || colors.accent} transform={transform} />;
         }
         const points = stroke.points.map(toPoint).join(' ');
+        if (stroke.closed) {
+          return (
+            <Polygon
+              key={`${stroke.order}-${index}`}
+              points={points}
+              fill="none"
+              stroke={color || colors.accent}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              transform={transform}
+            />
+          );
+        }
         return (
-          <Polygon
+          <Polyline
             key={`${stroke.order}-${index}`}
-            points={stroke.closed ? points : `${points} ${toPoint(stroke.points[0])}`}
+            points={points}
             fill="none"
             stroke={color || colors.accent}
             strokeWidth="8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            transform={mirrored ? 'translate(100 0) scale(-1 1)' : undefined}
+            transform={transform}
           />
         );
       })}

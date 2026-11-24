@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
@@ -311,74 +311,108 @@ function MatchPairsQuestion({ item, selectedLetter, setSelectedLetter, onAnswer,
 }
 
 function TraceQuestion({ item, colors, speechRate, onComplete }) {
-  const [strokeIndex, setStrokeIndex] = useState(0);
-  const [pointIndex, setPointIndex] = useState(0);
-  const [completed, setCompleted] = useState(0);
-  const [misses, setMisses] = useState(0);
-  const [hintUsed, setHintUsed] = useState(false);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const strokeList = useMemo(() => item.strokes?.strokes || [], [item.strokes]);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [hintActive, setHintActive] = useState(false);
   const [showModel, setShowModel] = useState(false);
   const [answerRevealed, setAnswerRevealed] = useState(false);
-  const lastMissAt = useRef(0);
+  const [showReveal, setShowReveal] = useState(false);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const sizeRef = useRef({ width: 0, height: 0 });
+  const progressRef = useRef({ strokeIndex: 0, pointIndex: 0, completed: 0, misses: 0, hintUsed: false, revealed: false, lastMissAt: 0 });
   const [guideProgress] = useState(() => new Animated.Value(0));
-  const strokeList = item.strokes?.strokes || [];
-  const nextStroke = strokeList[strokeIndex];
-  const guidePoints = nextStroke?.points?.length > 1 ? nextStroke.points : [[0, 0], [1, 1]];
+
+  const activeStroke = strokeList[completedCount] || null;
+  const guidePoints = activeStroke?.points?.length > 1 ? activeStroke.points : [[0, 0], [1, 1]];
   const guideScale = size.width && size.height ? Math.min(size.width / 100, size.height / 140) : 0;
   const guideOffsetX = (size.width - 100 * guideScale) / 2;
   const guideOffsetY = (size.height - 140 * guideScale) / 2;
   const guideX = guideProgress.interpolate({
     inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([x]) => guideOffsetX + (10 + x * 80) * guideScale - 7),
+    outputRange: guidePoints.map(([x]) => guideOffsetX + (10 + x * 80) * guideScale),
     extrapolate: 'clamp',
   });
   const guideY = guideProgress.interpolate({
     inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([, y]) => guideOffsetY + (100 - y * 65) * guideScale - 7),
+    outputRange: guidePoints.map(([, y]) => guideOffsetY + (100 - y * 65) * guideScale),
     extrapolate: 'clamp',
   });
 
   useEffect(() => {
-    if (!hintUsed || !nextStroke || nextStroke.points.length < 2) return undefined;
+    if (!hintActive || !activeStroke || activeStroke.points.length < 2) return undefined;
+    guideProgress.stopAnimation();
     guideProgress.setValue(0);
-    const animation = Animated.loop(Animated.timing(guideProgress, {
-      toValue: nextStroke.points.length - 1,
-      duration: 1800,
-      useNativeDriver: false,
-    }));
+    const animation = Animated.loop(
+      Animated.timing(guideProgress, {
+        toValue: activeStroke.points.length - 1,
+        duration: Math.max(1400, activeStroke.points.length * 350),
+        useNativeDriver: true,
+      }),
+    );
     animation.start();
     return () => animation.stop();
-  }, [guideProgress, hintUsed, nextStroke]);
+  }, [activeStroke, guideProgress, hintActive, completedCount]);
 
-  function trackTouch(event) {
-    if (!nextStroke || !size.width || !size.height) return;
-    const { locationX, locationY } = event.nativeEvent;
-    const scale = Math.min(size.width / 100, size.height / 140);
-    const offsetX = (size.width - 100 * scale) / 2;
-    const offsetY = (size.height - 140 * scale) / 2;
-    const x = (((locationX - offsetX) / scale) - 10) / 80;
-    const y = (100 - (locationY - offsetY) / scale) / 65;
-    const expected = nextStroke.points[pointIndex];
-    const dx = x - expected[0];
-    const dy = y - expected[1];
-    if (Math.sqrt(dx * dx + dy * dy) < 0.16) {
-      if (pointIndex + 1 < nextStroke.points.length) setPointIndex((value) => value + 1);
-      else {
-        const nextStrokeIndex = strokeIndex + 1;
-        setStrokeIndex(nextStrokeIndex);
-        setPointIndex(0);
-        setCompleted(nextStrokeIndex);
-      }
-    } else if (Date.now() - lastMissAt.current > 700) {
-      lastMissAt.current = Date.now();
-      const nextMisses = misses + 1;
-      setMisses(nextMisses);
-      if (nextMisses >= 2) setHintUsed(true);
+  function revealHint() {
+    if (!progressRef.current.hintUsed) {
+      progressRef.current.hintUsed = true;
+      setHintActive(true);
     }
   }
 
+  function advanceProgress(x, y) {
+    const state = progressRef.current;
+    if (state.revealed || strokeList.length === 0) return;
+    let { strokeIndex, pointIndex, completed, misses } = state;
+    let stroke = strokeList[strokeIndex];
+    if (!stroke) return;
+    let moved = false;
+    const threshold = stroke.type === 'dot' ? 0.2 : 0.18;
+    while (stroke) {
+      const expected = stroke.points[Math.min(pointIndex, stroke.points.length - 1)];
+      const dx = x - expected[0];
+      const dy = y - expected[1];
+      if (Math.sqrt(dx * dx + dy * dy) > threshold) break;
+      moved = true;
+      if (pointIndex + 1 < stroke.points.length) {
+        pointIndex += 1;
+      } else {
+        strokeIndex += 1;
+        pointIndex = 0;
+        completed = strokeIndex;
+        stroke = strokeList[strokeIndex];
+      }
+    }
+    if (moved) {
+      state.strokeIndex = strokeIndex;
+      state.pointIndex = pointIndex;
+      state.completed = completed;
+      if (completed !== completedCount) setCompletedCount(completed);
+      return;
+    }
+    const now = Date.now();
+    if (now - state.lastMissAt < 450) return;
+    state.lastMissAt = now;
+    misses += 1;
+    state.misses = misses;
+    if (misses >= 2) revealHint();
+    if (misses >= 4 && !state.revealed) setShowReveal(true);
+  }
+
+  function trackTouch(event) {
+    const { width, height } = sizeRef.current;
+    if (!width || !height) return;
+    const { locationX, locationY } = event.nativeEvent;
+    const scale = Math.min(width / 100, height / 140);
+    const offsetX = (width - 100 * scale) / 2;
+    const offsetY = (height - 140 * scale) / 2;
+    const x = (((locationX - offsetX) / scale) - 10) / 80;
+    const y = (100 - (locationY - offsetY) / scale) / 65;
+    advanceProgress(x, y);
+  }
+
   function finishTrace() {
-    onComplete({ resolved: true, usedHint: hintUsed });
+    onComplete({ resolved: true, usedHint: progressRef.current.hintUsed });
   }
 
   if (showModel) {
@@ -395,33 +429,50 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
   return (
     <View style={styles.question}>
       <ThemedText variant="subtitle" style={styles.center}>Telusuri hurufnya dengan jarimu</ThemedText>
+      <ThemedText variant="caption" style={styles.center}>
+        Ikuti urutan nomor goresan dari titik awal.
+      </ThemedText>
       <View
-        onLayout={(event) => setSize(event.nativeEvent.layout)}
-        onTouchStart={trackTouch}
-        onTouchMove={trackTouch}
+        onLayout={(event) => {
+          const nextSize = event.nativeEvent.layout;
+          sizeRef.current = { width: nextSize.width, height: nextSize.height };
+          setSize(nextSize);
+        }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={trackTouch}
+        onResponderMove={trackTouch}
         style={[styles.traceArea, { backgroundColor: colors.bg, borderColor: colors.border }]}
       >
         <Letter2D strokes={strokeList} width="100%" height="100%" color={colors.textSecondary} />
-        {completed > 0 ? <Letter2D strokes={strokeList.slice(0, completed)} width="100%" height="100%" color={colors.accent} /> : null}
+        {completedCount > 0 ? <Letter2D strokes={strokeList.slice(0, completedCount)} width="100%" height="100%" color={colors.accent} /> : null}
         <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 140" style={StyleSheet.absoluteFill}>
           {strokeList.map((stroke, strokeNumber) => {
             const [x, y] = stroke.points[0];
             const cx = 10 + x * 80;
             const cy = 100 - y * 65;
+            const active = strokeNumber === completedCount;
             return (
               <Fragment key={`marker-${stroke.order}`}>
-                <Circle cx={cx} cy={cy} r="7" fill={colors.star} stroke={colors.accent} strokeWidth="1.5" />
+                <Circle cx={cx} cy={cy} r="7.5" fill={active ? colors.accent : colors.secondary} stroke={colors.border} strokeWidth="1.5" />
                 <SvgText x={cx} y={cy + 3} textAnchor="middle" fill={colors.text} fontSize="8" fontWeight="bold">{strokeNumber + 1}</SvgText>
               </Fragment>
             );
           })}
         </Svg>
-        {hintUsed && size.width > 0 && size.height > 0 ? (
-          <Animated.View pointerEvents="none" style={[styles.traceGuide, { left: guideX, top: guideY, backgroundColor: colors.star }]} />
+        {hintActive && size.width > 0 && size.height > 0 && activeStroke ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.traceGuide, { backgroundColor: colors.star, transform: [{ translateX: guideX }, { translateY: guideY }] }]}
+          />
         ) : null}
       </View>
-      <ThemedText style={styles.center}>{hintUsed ? 'Ayo lihat bersama-sama. Ikuti titik panduan.' : 'Mulai dari titik pertama, lalu ikuti urutannya.'}</ThemedText>
-      {completed >= strokeList.length && strokeList.length > 0 ? (
+      <ThemedText style={styles.center}>
+        {hintActive
+          ? 'Ayo ikuti titik panduan pelan-pelan.'
+          : `Mulai dari titik ${Math.min(completedCount + 1, Math.max(strokeList.length, 1))}, lalu ikuti urutannya.`}
+      </ThemedText>
+      {completedCount >= strokeList.length && strokeList.length > 0 ? (
         <PrimaryButton
           title="Lihat huruf 3D"
           onPress={() => {
@@ -430,11 +481,12 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
           }}
         />
       ) : null}
-      {misses >= 3 && completed < strokeList.length ? (
+      {showReveal && completedCount < strokeList.length ? (
         <PrimaryButton
           title="Lihat contoh huruf"
           secondary
           onPress={() => {
+            progressRef.current.revealed = true;
             setShowModel(true);
             setAnswerRevealed(true);
             speakLetter(item.tts_syllable, speechRate);
