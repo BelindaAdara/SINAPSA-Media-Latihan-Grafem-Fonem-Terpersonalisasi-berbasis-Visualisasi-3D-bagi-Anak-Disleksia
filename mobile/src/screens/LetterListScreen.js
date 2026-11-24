@@ -82,17 +82,20 @@ export function LetterListScreen({ navigation }) {
             />
           ))}
         </View>
-        <View style={styles.filterRow}>
-          {masteryFilters.map((item) => (
-            <Chip
-              key={item.key}
-              title={item.label}
-              compact
-              selected={masteryFilter === item.key}
-              onPress={() => setMasteryFilter(item.key)}
-              style={styles.filterChip}
-            />
-          ))}
+        <View style={styles.statusSection}>
+          <ThemedText variant="caption" style={{ color: colors.textSecondary, fontWeight: '700' }}>Status</ThemedText>
+          <View style={styles.filterRow}>
+            {masteryFilters.map((item) => (
+              <Chip
+                key={item.key}
+                title={item.label}
+                compact
+                selected={masteryFilter === item.key}
+                onPress={() => setMasteryFilter(item.key)}
+                style={styles.filterChip}
+              />
+            ))}
+          </View>
         </View>
       </View>
       <FlatList
@@ -130,6 +133,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingBottom: 8, gap: 8 },
   search: { borderWidth: 1, borderRadius: 16, minHeight: 46, paddingHorizontal: 14, fontSize: 16 },
   filterBlock: { gap: 6 },
+  statusSection: { gap: 4 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   filterChip: { flexGrow: 0 },
   grid: { gap: 10, paddingBottom: 32 },

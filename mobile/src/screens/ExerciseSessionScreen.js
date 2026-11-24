@@ -330,12 +330,12 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
   const guideOffsetY = (size.height - 140 * guideScale) / 2;
   const guideX = guideProgress.interpolate({
     inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([x]) => guideOffsetX + (10 + x * 80) * guideScale),
+    outputRange: guidePoints.map(([x]) => guideOffsetX + (10 + x * 80) * guideScale - 7),
     extrapolate: 'clamp',
   });
   const guideY = guideProgress.interpolate({
     inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([, y]) => guideOffsetY + (100 - y * 65) * guideScale),
+    outputRange: guidePoints.map(([, y]) => guideOffsetY + (100 - y * 65) * guideScale - 7),
     extrapolate: 'clamp',
   });
 
@@ -464,9 +464,9 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
 
   return (
     <View style={styles.question}>
-      <ThemedText variant="subtitle" style={styles.center}>Telusuri hurufnya dengan jarimu</ThemedText>
+      <ThemedText variant="subtitle" style={styles.center}>Simulasi menulis huruf</ThemedText>
       <ThemedText variant="caption" style={styles.center}>
-        Ikuti urutan nomor goresan dari titik awal.
+        Ikuti nomor goresan dari titik awal sampai selesai.
       </ThemedText>
       <View
         onLayout={(event) => {
@@ -476,6 +476,9 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
         }}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
+        onStartShouldSetResponderCapture={() => true}
+        onMoveShouldSetResponderCapture={() => true}
+        onResponderTerminationRequest={() => false}
         onResponderGrant={trackTouch}
         onResponderMove={trackTouch}
         style={[styles.traceArea, { backgroundColor: colors.bg, borderColor: colors.border }]}
@@ -504,9 +507,11 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
         ) : null}
       </View>
       <ThemedText style={styles.center}>
-        {hintActive
-          ? 'Ayo ikuti titik panduan pelan-pelan.'
-          : `Mulai dari titik ${Math.min(completedCount + 1, Math.max(strokeList.length, 1))}, lalu ikuti urutannya.`}
+        {completedCount >= strokeList.length && strokeList.length > 0
+          ? 'Semua goresan selesai. Lihat hasil huruf 3D-mu.'
+          : hintActive
+            ? `Ikuti panduan pada goresan ${Math.min(completedCount + 1, strokeList.length)} dari ${strokeList.length}.`
+            : `Goresan ${Math.min(completedCount + 1, Math.max(strokeList.length, 1))} dari ${Math.max(strokeList.length, 1)}: mulai dari titik bernomor.`}
       </ThemedText>
       {completedCount >= strokeList.length && strokeList.length > 0 ? (
         <PrimaryButton
@@ -599,7 +604,7 @@ const styles = StyleSheet.create({
   pairColumn: { flex: 1, gap: 8 },
   traceArea: { width: '100%', height: 310, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   tracePreview: { width: '100%', height: 150, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  traceGuide: { position: 'absolute', width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent' },
+  traceGuide: { position: 'absolute', left: 0, top: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent', elevation: 3 },
   built: { textAlign: 'center', minHeight: 56 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   tile: { minWidth: 50, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' },

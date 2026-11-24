@@ -34,7 +34,7 @@ insert into exercise_types (id, name, description, how_to_play, icon_key, is_act
 ('listen_choose', 'Dengar & Pilih', 'Dengar bunyinya, pilih hurufnya', 'Dengarkan bunyi huruf dengan saksama. Lalu ketuk huruf yang cocok.', 'suara', true, 1),
 ('discriminate', 'Bedakan Huruf Mirip', 'Mana huruf yang sama persis?', 'Perhatikan bentuk hurufnya. Pilih huruf yang sama persis dengan contoh.', 'cermin', true, 2),
 ('match_pairs', 'Pasangkan Huruf & Bunyi', 'Pasangkan huruf dengan bunyinya', 'Pilih satu huruf, lalu pilih bunyi yang cocok. Pasangkan semuanya bersama-sama.', 'pasangan', true, 3),
-('trace', 'Telusuri Huruf 3D', 'Ikuti jalur huruf dengan jarimu', 'Ikuti jalur huruf pelan-pelan dengan jarimu. Setelah selesai, lihat bentuk hurufnya.', 'telusuri', true, 4),
+('trace', 'Simulasi Huruf 3D', 'Lihat huruf 3D, lalu ikuti alur menulisnya', 'Amati bentuk huruf 3D dan urutan goresannya. Lalu ikuti jalur menulis dari nomor awal sampai selesai.', 'telusuri', true, 4),
 ('syllable_build', 'Susun Suku Kata', 'Susun huruf menjadi suku kata', 'Lihat gambar dan bunyikan suku katanya. Ketuk huruf berurutan untuk menyusunnya.', 'susun', true, 5)
 on conflict (id) do update set name = excluded.name, description = excluded.description, how_to_play = excluded.how_to_play, icon_key = excluded.icon_key, is_active = excluded.is_active, sort_order = excluded.sort_order;
 

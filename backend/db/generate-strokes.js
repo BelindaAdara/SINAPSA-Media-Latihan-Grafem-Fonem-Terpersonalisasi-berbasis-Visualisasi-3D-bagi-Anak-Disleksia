@@ -84,7 +84,7 @@ const exerciseTypes = [
   ['listen_choose', 'Dengar & Pilih', 'Dengar bunyinya, pilih hurufnya', 'Dengarkan bunyi huruf dengan saksama. Lalu ketuk huruf yang cocok.', 'suara', true],
   ['discriminate', 'Bedakan Huruf Mirip', 'Mana huruf yang sama persis?', 'Perhatikan bentuk hurufnya. Pilih huruf yang sama persis dengan contoh.', 'cermin', true],
   ['match_pairs', 'Pasangkan Huruf & Bunyi', 'Pasangkan huruf dengan bunyinya', 'Pilih satu huruf, lalu pilih bunyi yang cocok. Pasangkan semuanya bersama-sama.', 'pasangan', true],
-  ['trace', 'Telusuri Huruf 3D', 'Ikuti jalur huruf dengan jarimu', 'Ikuti jalur huruf pelan-pelan dengan jarimu. Setelah selesai, lihat bentuk hurufnya.', 'telusuri', true],
+  ['trace', 'Simulasi Huruf 3D', 'Lihat huruf 3D, lalu ikuti alur menulisnya', 'Amati bentuk huruf 3D dan urutan goresannya. Lalu ikuti jalur menulis dari nomor awal sampai selesai.', 'telusuri', true],
   ['syllable_build', 'Susun Suku Kata', 'Susun huruf menjadi suku kata', 'Lihat gambar dan bunyikan suku katanya. Ketuk huruf berurutan untuk menyusunnya.', 'susun', true],
 ];
 
