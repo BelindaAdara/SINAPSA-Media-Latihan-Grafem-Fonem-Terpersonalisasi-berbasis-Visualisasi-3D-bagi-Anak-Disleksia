@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { buildItems } from '../exercises/buildItems';
@@ -9,7 +9,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { Card, Chip, ErrorState, Letter2D, LoadingState, PrimaryButton, Screen, StarSparkle, ThemedText } from '../components/ui';
 import { formatDuration } from '../utils/format';
 import { Letter3D } from '../three/Letter3D';
-import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Polyline, Text as SvgText } from 'react-native-svg';
 
 export function ExerciseSessionScreen({ route, navigation }) {
   const { exerciseType, targetLetters, sessionName, length } = route.params || {};
@@ -310,231 +310,127 @@ function MatchPairsQuestion({ item, selectedLetter, setSelectedLetter, onAnswer,
   );
 }
 
-function TraceQuestion({ item, colors, speechRate, onComplete }) {
-  const strokeList = useMemo(() => item.strokes?.strokes || [], [item.strokes]);
-  const [started, setStarted] = useState(false);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [hintActive, setHintActive] = useState(false);
-  const [showModel, setShowModel] = useState(false);
-  const [answerRevealed, setAnswerRevealed] = useState(false);
-  const [showReveal, setShowReveal] = useState(false);
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const sizeRef = useRef({ width: 0, height: 0 });
-  const progressRef = useRef({ strokeIndex: 0, pointIndex: 0, completed: 0, misses: 0, hintUsed: false, revealed: false, lastMissAt: 0 });
-  const [guideProgress] = useState(() => new Animated.Value(0));
-
-  const activeStroke = strokeList[completedCount] || null;
-  const guidePoints = activeStroke?.points?.length > 1 ? activeStroke.points : [[0, 0], [1, 1]];
-  const guideScale = size.width && size.height ? Math.min(size.width / 100, size.height / 140) : 0;
-  const guideOffsetX = (size.width - 100 * guideScale) / 2;
-  const guideOffsetY = (size.height - 140 * guideScale) / 2;
-  const guideX = guideProgress.interpolate({
-    inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([x]) => guideOffsetX + (10 + x * 80) * guideScale - 7),
-    extrapolate: 'clamp',
-  });
-  const guideY = guideProgress.interpolate({
-    inputRange: guidePoints.map((_, index) => index),
-    outputRange: guidePoints.map(([, y]) => guideOffsetY + (100 - y * 65) * guideScale - 7),
-    extrapolate: 'clamp',
-  });
+function StrokePlayback({ strokeList, colors }) {
+  const [progress, setProgress] = useState({ strokeIndex: 0, pointIndex: 1, phase: 'draw' });
+  const [playing, setPlaying] = useState(true);
 
   useEffect(() => {
-    if (!started || !hintActive || !activeStroke || activeStroke.points.length < 2) return undefined;
-    guideProgress.stopAnimation();
-    guideProgress.setValue(0);
-    const animation = Animated.loop(
-      Animated.timing(guideProgress, {
-        toValue: activeStroke.points.length - 1,
-        duration: Math.max(1400, activeStroke.points.length * 350),
-        useNativeDriver: true,
-      }),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [activeStroke, guideProgress, hintActive, completedCount, started]);
+    if (!playing || strokeList.length === 0) return undefined;
+    const timer = setInterval(() => {
+      setProgress((current) => {
+        const stroke = strokeList[current.strokeIndex];
+        if (!stroke) return { strokeIndex: 0, pointIndex: 1, phase: 'draw' };
+        if (current.phase === 'pause') {
+          const nextStroke = current.strokeIndex + 1;
+          if (nextStroke >= strokeList.length) return { strokeIndex: 0, pointIndex: 1, phase: 'draw' };
+          return { strokeIndex: nextStroke, pointIndex: 1, phase: 'draw' };
+        }
+        const pointsCount = Math.max(stroke.points?.length || 1, 1);
+        const nextPoint = current.pointIndex + 1;
+        if (nextPoint > pointsCount) return { ...current, phase: 'pause' };
+        return { ...current, pointIndex: nextPoint };
+      });
+    }, 120);
+    return () => clearInterval(timer);
+  }, [playing, strokeList]);
 
-  function revealHint() {
-    if (!progressRef.current.hintUsed) {
-      progressRef.current.hintUsed = true;
-      setHintActive(true);
-    }
-  }
-
-  function advanceProgress(x, y) {
-    const state = progressRef.current;
-    if (!started || state.revealed || strokeList.length === 0) return;
-    let { strokeIndex, pointIndex, completed, misses } = state;
-    let stroke = strokeList[strokeIndex];
-    if (!stroke) return;
-    let moved = false;
-    const threshold = stroke.type === 'dot' ? 0.2 : 0.18;
-    while (stroke) {
-      const expected = stroke.points[Math.min(pointIndex, stroke.points.length - 1)];
-      const dx = x - expected[0];
-      const dy = y - expected[1];
-      if (Math.sqrt(dx * dx + dy * dy) > threshold) break;
-      moved = true;
-      if (pointIndex + 1 < stroke.points.length) {
-        pointIndex += 1;
-      } else {
-        strokeIndex += 1;
-        pointIndex = 0;
-        completed = strokeIndex;
-        stroke = strokeList[strokeIndex];
-      }
-    }
-    if (moved) {
-      state.strokeIndex = strokeIndex;
-      state.pointIndex = pointIndex;
-      state.completed = completed;
-      if (completed !== completedCount) setCompletedCount(completed);
-      return;
-    }
-    const now = Date.now();
-    if (now - state.lastMissAt < 450) return;
-    state.lastMissAt = now;
-    misses += 1;
-    state.misses = misses;
-    if (misses >= 2) revealHint();
-    if (misses >= 4 && !state.revealed) setShowReveal(true);
-  }
-
-  function trackTouch(event) {
-    const { width, height } = sizeRef.current;
-    if (!width || !height) return;
-    const { locationX, locationY } = event.nativeEvent;
-    const scale = Math.min(width / 100, height / 140);
-    const offsetX = (width - 100 * scale) / 2;
-    const offsetY = (height - 140 * scale) / 2;
-    const x = (((locationX - offsetX) / scale) - 10) / 80;
-    const y = (100 - (locationY - offsetY) / scale) / 65;
-    advanceProgress(x, y);
-  }
-
-  function finishTrace() {
-    onComplete({ resolved: true, usedHint: progressRef.current.hintUsed });
-  }
-
-  if (showModel) {
-    return (
-      <View style={styles.question}>
-        <StarSparkle size={32} />
-        <ThemedText variant="subtitle" style={styles.center}>{answerRevealed ? 'Ini dia bentuk hurufnya.' : 'Hurufnya muncul! Hebat sekali.'}</ThemedText>
-        <Letter3D symbol={item.letter} strokes={item.strokes} height={200} autoRotate />
-        {!answerRevealed ? <PrimaryButton title="Lanjut" onPress={finishTrace} /> : null}
-      </View>
-    );
-  }
-
-  if (!started) {
-    return (
-      <View style={styles.question}>
-        <ThemedText variant="subtitle" style={styles.center}>Lihat huruf 3D dulu</ThemedText>
-        <ThemedText variant="caption" style={styles.center}>
-          Amati bentuk huruf dan urutan goresannya, lalu mulai simulasi menulis.
-        </ThemedText>
-        <Letter3D symbol={item.letter} strokes={item.strokes} height={210} autoRotate />
-        <View style={[styles.tracePreview, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-          <Letter2D strokes={strokeList} width="100%" height="100%" color={colors.textSecondary} />
-          <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 140" style={StyleSheet.absoluteFill}>
-            {strokeList.map((stroke, strokeNumber) => {
-              const [x, y] = stroke.points[0];
-              const cx = 10 + x * 80;
-              const cy = 100 - y * 65;
-              return (
-                <Fragment key={`preview-${stroke.order}`}>
-                  <Circle cx={cx} cy={cy} r="7.5" fill={colors.secondary} stroke={colors.border} strokeWidth="1.5" />
-                  <SvgText x={cx} y={cy + 3} textAnchor="middle" fill={colors.text} fontSize="8" fontWeight="bold">{strokeNumber + 1}</SvgText>
-                </Fragment>
-              );
-            })}
-          </Svg>
-        </View>
-        <PrimaryButton
-          title="Mulai simulasi menulis"
-          onPress={() => {
-            speakLetter(item.tts_syllable, speechRate);
-            setStarted(true);
-          }}
-        />
-      </View>
-    );
-  }
+  const activeStroke = strokeList[progress.strokeIndex];
+  const partialPoints = activeStroke ? activeStroke.points.slice(0, Math.max(progress.pointIndex, activeStroke.type === 'dot' ? 1 : 2)) : [];
+  const toPoint = ([x, y]) => `${10 + x * 80},${100 - y * 65}`;
 
   return (
-    <View style={styles.question}>
-      <ThemedText variant="subtitle" style={styles.center}>Simulasi menulis huruf</ThemedText>
-      <ThemedText variant="caption" style={styles.center}>
-        Ikuti nomor goresan dari titik awal sampai selesai.
-      </ThemedText>
-      <View
-        onLayout={(event) => {
-          const nextSize = event.nativeEvent.layout;
-          sizeRef.current = { width: nextSize.width, height: nextSize.height };
-          setSize(nextSize);
-        }}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onStartShouldSetResponderCapture={() => true}
-        onMoveShouldSetResponderCapture={() => true}
-        onResponderTerminationRequest={() => false}
-        onResponderGrant={trackTouch}
-        onResponderMove={trackTouch}
-        style={[styles.traceArea, { backgroundColor: colors.bg, borderColor: colors.border }]}
-      >
-        <Letter2D strokes={strokeList} width="100%" height="100%" color={colors.textSecondary} />
-        {completedCount > 0 ? <Letter2D strokes={strokeList.slice(0, completedCount)} width="100%" height="100%" color={colors.accent} /> : null}
+    <View style={styles.playbackWrap}>
+      <View style={[styles.traceArea, { backgroundColor: colors.bg, borderColor: colors.border, height: 280 }]}>
+        <Letter2D strokes={strokeList} width="100%" height="100%" color={colors.border} />
+        {progress.strokeIndex > 0 ? <Letter2D strokes={strokeList.slice(0, progress.strokeIndex)} width="100%" height="100%" color={colors.textSecondary} /> : null}
         <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 140" style={StyleSheet.absoluteFill}>
           {strokeList.map((stroke, strokeNumber) => {
             const [x, y] = stroke.points[0];
             const cx = 10 + x * 80;
             const cy = 100 - y * 65;
-            const active = strokeNumber === completedCount;
+            const active = strokeNumber === progress.strokeIndex;
+            const done = strokeNumber < progress.strokeIndex;
             return (
               <Fragment key={`marker-${stroke.order}`}>
-                <Circle cx={cx} cy={cy} r="7.5" fill={active ? colors.accent : colors.secondary} stroke={colors.border} strokeWidth="1.5" />
+                <Circle cx={cx} cy={cy} r="7.5" fill={active ? colors.accent : done ? colors.success : colors.secondary} stroke={colors.border} strokeWidth="1.5" />
                 <SvgText x={cx} y={cy + 3} textAnchor="middle" fill={colors.text} fontSize="8" fontWeight="bold">{strokeNumber + 1}</SvgText>
               </Fragment>
             );
           })}
+          {activeStroke?.type === 'dot' && partialPoints[0] ? (
+            <Circle cx={10 + partialPoints[0][0] * 80} cy={100 - partialPoints[0][1] * 65} r="6" fill={colors.accent} />
+          ) : null}
+          {activeStroke && activeStroke.type !== 'dot' && partialPoints.length > 1 ? (
+            <Polyline
+              points={partialPoints.map(toPoint).join(' ')}
+              fill="none"
+              stroke={colors.accent}
+              strokeWidth="9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : null}
+          {partialPoints[partialPoints.length - 1] ? (
+            <Circle
+              cx={10 + partialPoints[partialPoints.length - 1][0] * 80}
+              cy={100 - partialPoints[partialPoints.length - 1][1] * 65}
+              r="5"
+              fill={colors.star}
+              stroke={colors.surface}
+              strokeWidth="1.5"
+            />
+          ) : null}
         </Svg>
-        {hintActive && size.width > 0 && size.height > 0 && activeStroke ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.traceGuide, { backgroundColor: colors.star, transform: [{ translateX: guideX }, { translateY: guideY }] }]}
-          />
-        ) : null}
       </View>
-      <ThemedText style={styles.center}>
-        {completedCount >= strokeList.length && strokeList.length > 0
-          ? 'Semua goresan selesai. Lihat hasil huruf 3D-mu.'
-          : hintActive
-            ? `Ikuti panduan pada goresan ${Math.min(completedCount + 1, strokeList.length)} dari ${strokeList.length}.`
-            : `Goresan ${Math.min(completedCount + 1, Math.max(strokeList.length, 1))} dari ${Math.max(strokeList.length, 1)}: mulai dari titik bernomor.`}
-      </ThemedText>
-      {completedCount >= strokeList.length && strokeList.length > 0 ? (
+      <View style={styles.playbackControls}>
         <PrimaryButton
-          title="Lihat huruf 3D"
-          onPress={() => {
-            setShowModel(true);
-            speakLetter(item.tts_syllable, speechRate);
-          }}
+          title={playing ? 'Jeda' : 'Putar'}
+          secondary
+          onPress={() => setPlaying((value) => !value)}
+          style={styles.playbackButton}
         />
-      ) : null}
-      {showReveal && completedCount < strokeList.length ? (
         <PrimaryButton
-          title="Lihat contoh huruf"
+          title="Ulangi"
           secondary
           onPress={() => {
-            progressRef.current.revealed = true;
-            setShowModel(true);
-            setAnswerRevealed(true);
-            speakLetter(item.tts_syllable, speechRate);
-            onComplete({ resolved: false, usedHint: true });
+            setProgress({ strokeIndex: 0, pointIndex: 1, phase: 'draw' });
+            setPlaying(true);
           }}
+          style={styles.playbackButton}
         />
-      ) : null}
+      </View>
+    </View>
+  );
+}
+
+function TraceQuestion({ item, colors, speechRate, onComplete }) {
+  const strokeList = useMemo(() => item.strokes?.strokes || [], [item.strokes]);
+
+  return (
+    <View style={styles.question}>
+      <ThemedText variant="subtitle" style={styles.center}>Simulasi Huruf 3D</ThemedText>
+      <ThemedText variant="caption" style={styles.center}>
+        Lihat huruf 3D, lalu ikuti langkah-langkah dan video cara menulisnya.
+      </ThemedText>
+      <Letter3D symbol={item.letter} strokes={item.strokes} height={210} autoRotate />
+      <StrokePlayback strokeList={strokeList} colors={colors} />
+      <Card style={[styles.stepsCard, { backgroundColor: colors.bg }]}>
+        <ThemedText variant="caption" style={{ fontWeight: '700' }}>Langkah-langkah menulis</ThemedText>
+        {strokeList.map((stroke, index) => (
+          <ThemedText key={`step-${stroke.order || index}`} variant="caption" style={styles.stepText}>
+            {`${index + 1}. ${stroke.type === 'dot' ? 'Beri titik di posisi bernomor.' : 'Mulai dari titik bernomor, lalu ikuti alur goresan ini sampai selesai.'}`}
+          </ThemedText>
+        ))}
+        {strokeList.length === 0 ? (
+          <ThemedText variant="caption" style={styles.stepText}>Langkah menulis belum tersedia.</ThemedText>
+        ) : null}
+      </Card>
+      <PrimaryButton
+        title="🔊 Dengarkan bunyi huruf"
+        secondary
+        onPress={() => speakLetter(item.tts_syllable, speechRate)}
+      />
+      <PrimaryButton title="Lanjut" onPress={() => onComplete({ resolved: true, usedHint: false })} />
     </View>
   );
 }
@@ -605,6 +501,11 @@ const styles = StyleSheet.create({
   traceArea: { width: '100%', height: 310, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   tracePreview: { width: '100%', height: 150, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   traceGuide: { position: 'absolute', left: 0, top: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent', elevation: 3 },
+  playbackWrap: { gap: 10 },
+  playbackControls: { flexDirection: 'row', gap: 10 },
+  playbackButton: { flex: 1 },
+  stepsCard: { gap: 8, borderWidth: 1 },
+  stepText: { textAlign: 'left' },
   built: { textAlign: 'center', minHeight: 56 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   tile: { minWidth: 50, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' },

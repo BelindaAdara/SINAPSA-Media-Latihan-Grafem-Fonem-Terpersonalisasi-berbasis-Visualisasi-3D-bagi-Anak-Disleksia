@@ -7,13 +7,20 @@
     "description": "Media latihan grafem-fonem yang ramah anak.",
     "userInterfaceStyle": "automatic",
     "scheme": "sinapsa",
+    "splash": {
+      "backgroundColor": "#E8F7FF",
+      "resizeMode": "contain"
+    },
     "ios": {
       "bundleIdentifier": "id.sinapsa.mobile",
       "supportsTablet": true
     },
     "android": {
       "package": "id.sinapsa.mobile",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#E8F7FF"
+      }
     }
   }
 }

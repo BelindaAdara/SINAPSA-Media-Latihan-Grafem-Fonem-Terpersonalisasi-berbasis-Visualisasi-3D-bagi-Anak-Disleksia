@@ -31,6 +31,7 @@ export function LetterListScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [masteryFilter, setMasteryFilter] = useState('all');
+  const [statusOpen, setStatusOpen] = useState(false);
 
   const load = useCallback(async () => {
     setStatus('loading');
@@ -58,17 +59,37 @@ export function LetterListScreen({ navigation }) {
   if (status === 'loading') return <Screen><LoadingState message="Menyiapkan pustaka huruf..." /></Screen>;
   if (status === 'error') return <Screen><ErrorState error={error} onRetry={load} /></Screen>;
 
+  const activeStatusLabel = masteryFilters.find((item) => item.key === masteryFilter)?.label || 'Semua status';
+
   return (
     <Screen scroll={false} style={styles.container} contentStyle={styles.content}>
       <ThemedText variant="title">Pustaka Huruf</ThemedText>
-      <TextInput
-        accessibilityLabel="Cari huruf atau bunyi"
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Cari huruf atau bunyi"
-        placeholderTextColor={colors.textSecondary}
-        style={[styles.search, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          accessibilityLabel="Cari huruf atau bunyi"
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Cari huruf atau bunyi"
+          placeholderTextColor={colors.textSecondary}
+          style={[styles.search, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Filter status: ${activeStatusLabel}`}
+          onPress={() => setStatusOpen((open) => !open)}
+          style={({ pressed }) => [
+            styles.filterButton,
+            {
+              backgroundColor: statusOpen || masteryFilter !== 'all' ? colors.secondary : colors.surface,
+              borderColor: statusOpen || masteryFilter !== 'all' ? colors.accent : colors.border,
+              opacity: pressed ? 0.86 : 1,
+            },
+          ]}
+        >
+          <ThemedText style={{ fontSize: 18 }}>⚙</ThemedText>
+          <ThemedText variant="caption" style={{ fontWeight: '700' }} numberOfLines={1}>Filter</ThemedText>
+        </Pressable>
+      </View>
       <View style={styles.filterBlock}>
         <View style={styles.filterRow}>
           {filters.map((item) => (
@@ -82,21 +103,32 @@ export function LetterListScreen({ navigation }) {
             />
           ))}
         </View>
-        <View style={styles.statusSection}>
-          <ThemedText variant="caption" style={{ color: colors.textSecondary, fontWeight: '700' }}>Status</ThemedText>
-          <View style={styles.filterRow}>
+        {statusOpen ? (
+          <View style={[styles.statusDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ThemedText variant="caption" style={{ color: colors.textSecondary, fontWeight: '700' }}>Status huruf</ThemedText>
             {masteryFilters.map((item) => (
-              <Chip
+              <Pressable
                 key={item.key}
-                title={item.label}
-                compact
-                selected={masteryFilter === item.key}
-                onPress={() => setMasteryFilter(item.key)}
-                style={styles.filterChip}
-              />
+                accessibilityRole="button"
+                accessibilityState={{ selected: masteryFilter === item.key }}
+                onPress={() => {
+                  setMasteryFilter(item.key);
+                  setStatusOpen(false);
+                }}
+                style={({ pressed }) => [
+                  styles.statusOption,
+                  {
+                    backgroundColor: masteryFilter === item.key ? colors.secondary : 'transparent',
+                    borderColor: masteryFilter === item.key ? colors.accent : colors.border,
+                    opacity: pressed ? 0.86 : 1,
+                  },
+                ]}
+              >
+                <ThemedText variant="caption" style={{ fontWeight: masteryFilter === item.key ? '700' : '500' }}>{item.label}</ThemedText>
+              </Pressable>
             ))}
           </View>
-        </View>
+        ) : null}
       </View>
       <FlatList
         data={visible}
@@ -131,11 +163,14 @@ export function LetterListScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingBottom: 8, gap: 8 },
-  search: { borderWidth: 1, borderRadius: 16, minHeight: 46, paddingHorizontal: 14, fontSize: 16 },
+  searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  search: { flex: 1, borderWidth: 1, borderRadius: 16, minHeight: 46, paddingHorizontal: 14, fontSize: 16 },
+  filterButton: { minHeight: 46, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', gap: 1 },
   filterBlock: { gap: 6 },
-  statusSection: { gap: 4 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   filterChip: { flexGrow: 0 },
+  statusDropdown: { borderWidth: 1, borderRadius: 16, padding: 10, gap: 8 },
+  statusOption: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, justifyContent: 'center' },
   grid: { gap: 10, paddingBottom: 32 },
   letterList: { flex: 1 },
   gridRow: { gap: 10 },
