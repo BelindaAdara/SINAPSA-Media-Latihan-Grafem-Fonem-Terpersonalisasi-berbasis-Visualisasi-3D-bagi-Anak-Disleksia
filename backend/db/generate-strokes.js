@@ -54,7 +54,7 @@ function generateStrokes() {
 const letters = [
   ['a', '/a/', 'a', 'vowel', false, ['e', 'o'], 1, 'apel', '🍎', 'awan', '☁️'],
   ['b', '/b/', 'ba', 'consonant', true, ['d', 'p'], 3, 'bola', '⚽', 'baju', '👕'],
-  ['c', '/tʃ/', 'ca', 'consonant', false, ['e', 'o'], 2, 'cabai', '🌶️', 'cicak', '🦎'],
+  ['c', '/tʃ/', 'ce', 'consonant', false, ['e', 'o'], 2, 'cabai', '🌶️', 'cicak', '🦎'],
   ['d', '/d/', 'da', 'consonant', true, ['b', 'q'], 3, 'dadu', '🎲', 'daun', '🍃'],
   ['e', '/e/ atau /ə/', 'e', 'vowel', false, ['a', 'c'], 2, 'elang', '🦅', 'ember', '🪣'],
   ['f', '/f/', 'fa', 'consonant', false, ['t'], 2, 'film', '🎬', 'foto', '📷'],
@@ -68,7 +68,7 @@ const letters = [
   ['n', '/n/', 'na', 'consonant', true, ['u', 'm', 'h'], 3, 'nasi', '🍚', 'nenek', '👵'],
   ['o', '/o/', 'o', 'vowel', false, ['a', 'c'], 1, 'ombak', '🌊', 'obat', '💊'],
   ['p', '/p/', 'pa', 'consonant', true, ['q', 'b'], 3, 'pisang', '🍌', 'padi', '🌾'],
-  ['q', '/q/', 'ka', 'consonant', true, ['p', 'd', 'g'], 4, 'Qatar', '🌍', 'qari', '📖'],
+  ['q', '/k/', 'ki', 'consonant', true, ['p', 'd', 'g'], 4, 'Qatar', '🌍', 'qari', '📖'],
   ['r', '/r/', 'ra', 'consonant', false, ['n'], 2, 'roti', '🍞', 'rumah', '🏠'],
   ['s', '/s/', 'sa', 'consonant', false, ['z'], 2, 'sapi', '🐄', 'susu', '🥛'],
   ['t', '/t/', 'ta', 'consonant', false, ['f', 'l'], 2, 'topi', '🧢', 'tali', '🪢'],
@@ -104,7 +104,7 @@ const vowelHints = {
 
 const consonantHints = {
   b: 'Bibir tertutup, lalu dilepas: b.',
-  c: "Bunyikan seperti bunyi awal kata 'cicak': ca.",
+  c: "Bunyikan huruf c: ce, seperti bunyi awal kata 'cicak'.",
   d: 'Ujung lidah menyentuh gigi atas, lalu dilepas: d.',
   f: 'Gigi atas menyentuh bibir bawah, lalu hembuskan: fa.',
   g: 'Pangkal lidah menyentuh langit-langit, lalu lepaskan: ga.',
@@ -115,7 +115,7 @@ const consonantHints = {
   m: 'Rapatkan bibir dan keluarkan bunyi: ma.',
   n: 'Ujung lidah menyentuh bagian belakang gigi atas: na.',
   p: 'Rapatkan bibir, lalu lepaskan: pa.',
-  q: 'Bunyikan ka; huruf q jarang dipakai dalam kata Indonesia.',
+  q: 'Bunyikan huruf q: ki; huruf q jarang dipakai dalam kata Indonesia.',
   r: 'Getarkan ujung lidah dengan lembut: ra.',
   s: 'Desiskan udara dengan lembut: sa.',
   t: 'Ujung lidah menyentuh belakang gigi atas, lalu dilepas: ta.',

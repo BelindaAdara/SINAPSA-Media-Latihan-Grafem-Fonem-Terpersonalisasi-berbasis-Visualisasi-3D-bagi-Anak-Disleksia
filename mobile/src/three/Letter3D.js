@@ -7,7 +7,7 @@ import { ThemedText } from '../components/ui';
 import { projectStrokes } from './strokeProjection';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const INITIAL_ROTATION = { yaw: -0.55, pitch: 0.14 };
+const INITIAL_ROTATION = { yaw: 0.28, pitch: 0.08 };
 let ThreeLetterScene;
 let sceneLoadError;
 let sceneLoadErrorLogged = false;

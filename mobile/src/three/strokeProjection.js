@@ -6,7 +6,7 @@ const DEPTH = 0.2;
 function projectPoint([pointX, pointY], depth, rotation, mirrored) {
   const mirror = mirrored ? -1 : 1;
   const x = (pointX - 0.5) * 1.25 * mirror;
-  const y = (0.5 - pointY) * 1.25;
+  const y = (pointY - 0.5) * 1.25;
   const cosYaw = Math.cos(rotation.yaw);
   const sinYaw = Math.sin(rotation.yaw);
   const cosPitch = Math.cos(rotation.pitch);
