@@ -1,12 +1,12 @@
 @baseUrl = http://localhost:3000/api/v1
-@childId = 00000000-0000-4000-8000-000000000001
-@sessionId = 00000000-0000-4000-8000-000000000002
+@childId = fad6892c-5845-4725-81b5-a633be6ae5b8
+@sessionId = b0e9e8db-4355-4b93-8c7f-b062bb8e75fe
 @exerciseId = listen_choose
 
 GET {{baseUrl}}/health
 
 ###
-GET {{baseUrl}}/letters?category=vowel&lookalike=false&q=a&child_id={{childId}}
+GET {{baseUrl}}/letters
 
 ###
 GET {{baseUrl}}/letters/b?child_id={{childId}}
