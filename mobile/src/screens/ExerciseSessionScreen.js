@@ -172,7 +172,7 @@ export function ExerciseSessionScreen({ route, navigation }) {
           <DiscriminateQuestion item={current} onAnswer={answer} colors={colors} hintUsed={hintUsed} />
         ) : null}
         {exerciseType === 'match_pairs' ? (
-          <MatchPairsQuestion item={current} selectedLetter={selectedLetter} setSelectedLetter={setSelectedLetter} onAnswer={answer} colors={colors} speechRate={speechRate} hintUsed={hintUsed} />
+          <MatchPairsQuestion key={current.item_index} item={current} onAnswer={answer} colors={colors} speechRate={speechRate} hintUsed={hintUsed} />
         ) : null}
         {exerciseType === 'trace' ? (
           <TraceQuestion
@@ -274,38 +274,102 @@ function ChoiceGrid({ choices, colors, onChoose, hintSymbol }) {
   );
 }
 
-function MatchPairsQuestion({ item, selectedLetter, setSelectedLetter, onAnswer, colors, speechRate, hintUsed }) {
-  const selectedPair = item.pairs.find((pair) => pair.symbol === selectedLetter);
+function MatchPairsQuestion({ item, onAnswer, colors, speechRate, hintUsed }) {
+  const pairs = useMemo(() => item.pairs || [], [item.pairs]);
+  const letterOptions = useMemo(() => pairs.map((pair) => pair.symbol), [pairs]);
+  const [soundOptions] = useState(() => {
+    const copy = (item.pairs || []).slice();
+    for (let index = copy.length - 1; index > 0; index -= 1) {
+      const swap = Math.floor(Math.random() * (index + 1));
+      [copy[index], copy[swap]] = [copy[swap], copy[index]];
+    }
+    return copy;
+  });
+  const [selectedLetter, setSelectedLetter] = useState(null);
+  const [matched, setMatched] = useState([]);
+  const [message, setMessage] = useState('Langkah 1: pilih satu huruf. Langkah 2: pilih bunyi yang cocok.');
+  const [tries, setTries] = useState(0);
+
+  function chooseLetter(symbol) {
+    if (matched.includes(symbol)) return;
+    setSelectedLetter(symbol);
+    setMessage(`Huruf "${symbol}" dipilih. Sekarang pilih bunyinya.`);
+  }
+
+  function chooseSound(pair) {
+    speakLetter(pair.sound, speechRate);
+    if (matched.includes(pair.symbol)) return;
+    if (!selectedLetter) {
+      setMessage('Pilih huruf dulu, lalu pilih bunyinya.');
+      return;
+    }
+    if (pair.symbol === selectedLetter) {
+      const nextMatched = [...matched, selectedLetter];
+      setMatched(nextMatched);
+      setSelectedLetter(null);
+      if (nextMatched.length >= pairs.length) {
+        setMessage('Semua pasangan sudah cocok. Hebat!');
+        onAnswer(item.letter, true, item.letter);
+      } else {
+        setMessage(`Cocok! ${nextMatched.length} dari ${pairs.length} pasangan selesai.`);
+      }
+      return;
+    }
+    const nextTries = tries + 1;
+    setTries(nextTries);
+    setSelectedLetter(null);
+    setMessage(nextTries >= 2 && !hintUsed
+      ? 'Belum cocok. Coba dengarkan bunyinya lagi, lalu cari huruf yang pas.'
+      : 'Belum cocok. Coba lagi ya, pelan-pelan.');
+  }
+
   return (
     <View style={styles.question}>
-      <ThemedText variant="subtitle" style={styles.center}>Pilih huruf, lalu pasangkan bunyinya</ThemedText>
+      <ThemedText variant="subtitle" style={styles.center}>Pasangkan huruf dan bunyinya</ThemedText>
+      <ThemedText variant="caption" style={styles.center}>
+        Pilih 1 huruf, lalu pilih bunyi yang cocok. Ulangi sampai semua pasangan selesai.
+      </ThemedText>
+      <ThemedText variant="caption" style={[styles.center, { fontWeight: '700' }]}>
+        {matched.length} dari {pairs.length} pasangan selesai
+      </ThemedText>
       <View style={styles.pairGrid}>
         <View style={styles.pairColumn}>
-          {item.pairs.map((pair) => (
-            <Chip
-              key={`letter-${pair.symbol}`}
-              title={pair.symbol}
-              selected={selectedLetter === pair.symbol || (hintUsed && pair.symbol === item.letter)}
-              onPress={() => setSelectedLetter(pair.symbol)}
-            />
-          ))}
+          <ThemedText variant="caption" style={styles.center}>Huruf</ThemedText>
+          {letterOptions.map((symbol) => {
+            const done = matched.includes(symbol);
+            return (
+              <Chip
+                key={`letter-${symbol}`}
+                title={done ? `${symbol} ✓` : symbol}
+                selected={selectedLetter === symbol}
+                disabled={done}
+                onPress={() => chooseLetter(symbol)}
+                style={done ? { backgroundColor: colors.success, borderColor: colors.accent } : null}
+              />
+            );
+          })}
         </View>
         <View style={styles.pairColumn}>
-          {item.pairs.map((pair, index) => (
-            <PrimaryButton
-              key={`sound-${pair.symbol}`}
-              title={`🔊 ${pair.sound}`}
-              secondary
-              style={hintUsed && pair.symbol === item.letter ? { borderColor: colors.accent, borderWidth: 3 } : null}
-              onPress={() => {
-                speakLetter(pair.sound, speechRate);
-                if (selectedPair) onAnswer(pair.symbol, selectedLetter === item.letter && pair.symbol === item.letter);
-              }}
-            />
-          ))}
+          <ThemedText variant="caption" style={styles.center}>Bunyi</ThemedText>
+          {soundOptions.map((pair) => {
+            const done = matched.includes(pair.symbol);
+            return (
+              <PrimaryButton
+                key={`sound-${pair.symbol}`}
+                title={done ? `✓ ${pair.sound}` : `🔊 ${pair.sound}`}
+                secondary
+                disabled={done}
+                style={done ? { backgroundColor: colors.success, borderColor: colors.accent } : null}
+                onPress={() => chooseSound(pair)}
+              />
+            );
+          })}
         </View>
       </View>
-      {!selectedLetter ? <ThemedText variant="caption" style={styles.center}>Pilih satu huruf di sebelah kiri.</ThemedText> : null}
+      <Card style={[styles.pairHintCard, { backgroundColor: hintUsed || tries >= 2 ? colors.secondary : colors.bg }]}>
+        <ThemedText variant="caption" style={styles.center}>{message}</ThemedText>
+        {hintUsed ? <ThemedText variant="caption" style={styles.center}>Petunjuk: coba cari pasangan huruf target &quot;{item.letter}&quot; terlebih dulu.</ThemedText> : null}
+      </Card>
     </View>
   );
 }
@@ -498,6 +562,7 @@ const styles = StyleSheet.create({
   continueButton: { backgroundColor: 'transparent' },
   pairGrid: { flexDirection: 'row', gap: 12 },
   pairColumn: { flex: 1, gap: 8 },
+  pairHintCard: { gap: 6, borderWidth: 1 },
   traceArea: { width: '100%', height: 310, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   tracePreview: { width: '100%', height: 150, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   traceGuide: { position: 'absolute', left: 0, top: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent', elevation: 3 },
