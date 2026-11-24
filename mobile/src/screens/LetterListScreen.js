@@ -69,22 +69,32 @@ export function LetterListScreen({ navigation }) {
         placeholderTextColor={colors.textSecondary}
         style={[styles.search, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
       />
-      <FlatList
-        data={filters}
-        horizontal
-        keyExtractor={(item) => item.key}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-        renderItem={({ item }) => <Chip title={item.label} selected={category === item.key} onPress={() => setCategory(item.key)} />}
-      />
-      <FlatList
-        data={masteryFilters}
-        horizontal
-        keyExtractor={(item) => item.key}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-        renderItem={({ item }) => <Chip title={item.label} selected={masteryFilter === item.key} onPress={() => setMasteryFilter(item.key)} />}
-      />
+      <View style={styles.filterBlock}>
+        <View style={styles.filterRow}>
+          {filters.map((item) => (
+            <Chip
+              key={item.key}
+              title={item.label}
+              compact
+              selected={category === item.key}
+              onPress={() => setCategory(item.key)}
+              style={styles.filterChip}
+            />
+          ))}
+        </View>
+        <View style={styles.filterRow}>
+          {masteryFilters.map((item) => (
+            <Chip
+              key={item.key}
+              title={item.label}
+              compact
+              selected={masteryFilter === item.key}
+              onPress={() => setMasteryFilter(item.key)}
+              style={styles.filterChip}
+            />
+          ))}
+        </View>
+      </View>
       <FlatList
         data={visible}
         style={styles.letterList}
@@ -117,9 +127,11 @@ export function LetterListScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, paddingBottom: 8, gap: 10 },
-  search: { borderWidth: 1, borderRadius: 16, minHeight: 50, paddingHorizontal: 14, fontSize: 17 },
-  chips: { gap: 8, paddingVertical: 2 },
+  content: { flex: 1, paddingBottom: 8, gap: 8 },
+  search: { borderWidth: 1, borderRadius: 16, minHeight: 46, paddingHorizontal: 14, fontSize: 16 },
+  filterBlock: { gap: 6 },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  filterChip: { flexGrow: 0 },
   grid: { gap: 10, paddingBottom: 32 },
   letterList: { flex: 1 },
   gridRow: { gap: 10 },

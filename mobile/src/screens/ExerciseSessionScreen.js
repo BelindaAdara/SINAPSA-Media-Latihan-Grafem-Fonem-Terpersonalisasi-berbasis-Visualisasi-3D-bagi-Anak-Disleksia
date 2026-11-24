@@ -312,6 +312,7 @@ function MatchPairsQuestion({ item, selectedLetter, setSelectedLetter, onAnswer,
 
 function TraceQuestion({ item, colors, speechRate, onComplete }) {
   const strokeList = useMemo(() => item.strokes?.strokes || [], [item.strokes]);
+  const [started, setStarted] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [hintActive, setHintActive] = useState(false);
   const [showModel, setShowModel] = useState(false);
@@ -339,7 +340,7 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
   });
 
   useEffect(() => {
-    if (!hintActive || !activeStroke || activeStroke.points.length < 2) return undefined;
+    if (!started || !hintActive || !activeStroke || activeStroke.points.length < 2) return undefined;
     guideProgress.stopAnimation();
     guideProgress.setValue(0);
     const animation = Animated.loop(
@@ -351,7 +352,7 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
     );
     animation.start();
     return () => animation.stop();
-  }, [activeStroke, guideProgress, hintActive, completedCount]);
+  }, [activeStroke, guideProgress, hintActive, completedCount, started]);
 
   function revealHint() {
     if (!progressRef.current.hintUsed) {
@@ -362,7 +363,7 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
 
   function advanceProgress(x, y) {
     const state = progressRef.current;
-    if (state.revealed || strokeList.length === 0) return;
+    if (!started || state.revealed || strokeList.length === 0) return;
     let { strokeIndex, pointIndex, completed, misses } = state;
     let stroke = strokeList[strokeIndex];
     if (!stroke) return;
@@ -422,6 +423,41 @@ function TraceQuestion({ item, colors, speechRate, onComplete }) {
         <ThemedText variant="subtitle" style={styles.center}>{answerRevealed ? 'Ini dia bentuk hurufnya.' : 'Hurufnya muncul! Hebat sekali.'}</ThemedText>
         <Letter3D symbol={item.letter} strokes={item.strokes} height={200} autoRotate />
         {!answerRevealed ? <PrimaryButton title="Lanjut" onPress={finishTrace} /> : null}
+      </View>
+    );
+  }
+
+  if (!started) {
+    return (
+      <View style={styles.question}>
+        <ThemedText variant="subtitle" style={styles.center}>Lihat huruf 3D dulu</ThemedText>
+        <ThemedText variant="caption" style={styles.center}>
+          Amati bentuk huruf dan urutan goresannya, lalu mulai simulasi menulis.
+        </ThemedText>
+        <Letter3D symbol={item.letter} strokes={item.strokes} height={210} autoRotate />
+        <View style={[styles.tracePreview, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+          <Letter2D strokes={strokeList} width="100%" height="100%" color={colors.textSecondary} />
+          <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 140" style={StyleSheet.absoluteFill}>
+            {strokeList.map((stroke, strokeNumber) => {
+              const [x, y] = stroke.points[0];
+              const cx = 10 + x * 80;
+              const cy = 100 - y * 65;
+              return (
+                <Fragment key={`preview-${stroke.order}`}>
+                  <Circle cx={cx} cy={cy} r="7.5" fill={colors.secondary} stroke={colors.border} strokeWidth="1.5" />
+                  <SvgText x={cx} y={cy + 3} textAnchor="middle" fill={colors.text} fontSize="8" fontWeight="bold">{strokeNumber + 1}</SvgText>
+                </Fragment>
+              );
+            })}
+          </Svg>
+        </View>
+        <PrimaryButton
+          title="Mulai simulasi menulis"
+          onPress={() => {
+            speakLetter(item.tts_syllable, speechRate);
+            setStarted(true);
+          }}
+        />
       </View>
     );
   }
@@ -562,6 +598,7 @@ const styles = StyleSheet.create({
   pairGrid: { flexDirection: 'row', gap: 12 },
   pairColumn: { flex: 1, gap: 8 },
   traceArea: { width: '100%', height: 310, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  tracePreview: { width: '100%', height: 150, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   traceGuide: { position: 'absolute', width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent' },
   built: { textAlign: 'center', minHeight: 56 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },

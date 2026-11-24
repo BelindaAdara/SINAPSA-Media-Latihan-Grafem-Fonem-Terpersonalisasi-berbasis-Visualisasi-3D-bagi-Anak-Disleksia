@@ -87,7 +87,7 @@ export function BackButton({ navigation, title = 'Kembali' }) {
   );
 }
 
-export function Chip({ title, selected, onPress, disabled = false, style, accessibilityLabel }) {
+export function Chip({ title, selected, onPress, disabled = false, style, accessibilityLabel, compact = false, textStyle }) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -97,7 +97,7 @@ export function Chip({ title, selected, onPress, disabled = false, style, access
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
-        styles.chip,
+        compact ? styles.chipCompact : styles.chip,
         {
           backgroundColor: selected ? colors.secondary : colors.surface,
           borderColor: selected ? colors.accent : colors.border,
@@ -107,7 +107,16 @@ export function Chip({ title, selected, onPress, disabled = false, style, access
         style,
       ]}
     >
-      <ThemedText variant="caption" style={{ fontWeight: selected ? '700' : '600' }}>{title}</ThemedText>
+      <ThemedText
+        variant="caption"
+        style={[
+          compact ? { fontSize: 13, lineHeight: 17 } : null,
+          { fontWeight: selected ? '700' : '600' },
+          textStyle,
+        ]}
+      >
+        {title}
+      </ThemedText>
     </Pressable>
   );
 }
@@ -318,6 +327,7 @@ const styles = StyleSheet.create({
   },
   button: { minHeight: 56, borderRadius: 20, borderWidth: 2, paddingHorizontal: 20, paddingVertical: 15, justifyContent: 'center', alignItems: 'center' },
   chip: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 8, justifyContent: 'center', alignItems: 'center', borderRadius: 24, borderWidth: 1 },
+  chipCompact: { minHeight: 34, paddingHorizontal: 10, paddingVertical: 5, justifyContent: 'center', alignItems: 'center', borderRadius: 18, borderWidth: 1 },
   stateCard: { alignItems: 'center', gap: 12, marginTop: 16 },
   stateIcon: { fontSize: 42, lineHeight: 52 },
   center: { textAlign: 'center' },
