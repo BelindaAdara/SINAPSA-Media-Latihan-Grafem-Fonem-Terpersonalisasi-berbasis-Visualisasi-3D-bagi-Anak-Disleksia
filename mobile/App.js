@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   retry: { marginTop: 20, fontWeight: '700', fontSize: 18 },
   sparkleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, marginBottom: 16 },
   sparkleRowBottom: { flexDirection: 'row', gap: 14, marginTop: 24 },
-  letterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 8 },
-  letterBubble: { width: 42, height: 50, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  splashLetter: { fontSize: 28, fontWeight: '800' },
+  letterRow: { flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8, width: '100%' },
+  letterBubble: { width: 38, height: 46, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center', flexShrink: 1 },
+  splashLetter: { fontSize: 24, fontWeight: '800' },
   funEmoji: { fontSize: 30 },
 });
